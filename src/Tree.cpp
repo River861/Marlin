@@ -804,7 +804,8 @@ bool Tree::page_search(GlobalAddress page_addr, const Key &k,
 
 #ifdef RM_INTERNAL_AMPLIFICATION
   // Should run under YCSB C
-  if (is_search && !next_is_leaf) {
+  static thread_local int warm_cnt = 100;
+  if (is_search && !next_is_leaf && (-- warm_cnt <= 0)) {
     dsm->read_sync(page_buffer, page_addr, STRUCT_OFFSET(InternalPage, records) + sizeof(InternalEntry), cxt);
     memset(&result, 0, sizeof(result));
     result.is_leaf = header->leftmost_ptr == GlobalAddress::Null();
