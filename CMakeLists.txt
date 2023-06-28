@@ -71,6 +71,22 @@ else()
     add_definitions(-DCONFIG_ENABLE_EMBEDDING_LOCK)
 endif()
 
+#Simulation Options
+option (RM_LEAF_AMPLIFICATION "Simulate a B+ tree w/o read amplification in leaf nodes" OFF)
+option (RM_INTERNAL_AMPLIFICATION "Simulate a B+ tree w/o read amplification in internal nodes" OFF)
+if(RM_LEAF_AMPLIFICATION)
+    add_definitions(-DRM_LEAF_AMPLIFICATION)
+else()
+    remove_definitions(-DRM_LEAF_AMPLIFICATION)
+endif()
+
+if(RM_INTERNAL_AMPLIFICATION)
+    add_definitions(-DRM_INTERNAL_AMPLIFICATION)
+else()
+    remove_definitions(-DRM_INTERNAL_AMPLIFICATION)
+endif()
+
+
 set(INCLUDE_BASE ${PROJECT_SOURCE_DIR}/include)
 include_directories(${INCLUDE_BASE})
 

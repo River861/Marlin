@@ -40,6 +40,8 @@ public:
 
   void bench();
 
+  bool is_full();
+
 private:
   uint64_t cache_size; // MB;
   std::atomic<int64_t> free_page_cnt;
@@ -69,6 +71,10 @@ inline IndexCache::IndexCache(int cache_size, DSM* dsm) : cache_size(cache_size)
   all_page_cnt = memory_size / sizeof(InternalPage);
   free_page_cnt.store(all_page_cnt);
   skiplist_node_cnt.store(0);
+}
+
+inline bool IndexCache::is_full() {
+  return free_page_cnt.load() == 0;
 }
 
 // [from, to）
