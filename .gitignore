@@ -1,0 +1,9 @@
+build/
+build/*
+ycsb/workloads/
+ycsb/workloads/*
+ycsb/YCSB/
+ycsb/YCSB/*
+.vscode/
+*.tar.gz
+us_lat/*.lat
