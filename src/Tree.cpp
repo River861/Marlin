@@ -483,7 +483,7 @@ bool Tree::search(const Key &k, Value &v, CoroContext *cxt, int coro_id) {
 
 
 next:
-  if (!page_search(p, k, result, cxt, coro_id, from_cache, nullptr, next_is_leaf, enable_cache ? index_cache->is_full() : true)) {
+  if (!page_search(p, k, result, cxt, coro_id, from_cache, nullptr, next_is_leaf, true)) {
     if (from_cache) { // cache stale
       index_cache->invalidate(entry);
       cache_hit[dsm->getMyThreadID()]--;
@@ -797,14 +797,14 @@ next:
 
 bool Tree::page_search(GlobalAddress page_addr, const Key &k,
                        SearchResult &result, CoroContext *cxt, int coro_id,
-                       bool from_cache, TmpResult* t_res, bool next_is_leaf, bool cache_is_full) {
+                       bool from_cache, TmpResult* t_res, bool next_is_leaf, bool is_search) {
   auto page_buffer = (dsm->get_rbuf(coro_id)).get_page_buffer();
   assert(STRUCT_OFFSET(LeafPage, hdr) == STRUCT_OFFSET(InternalPage, hdr));
   auto header = (Header *)(page_buffer + (STRUCT_OFFSET(LeafPage, hdr)));
 
 #ifdef RM_INTERNAL_AMPLIFICATION
   // Should run under YCSB C
-  if (cache_is_full && !next_is_leaf) {
+  if (is_search && !next_is_leaf) {
     dsm->read_sync(page_buffer, page_addr, STRUCT_OFFSET(InternalPage, records) + sizeof(InternalEntry), cxt);
     memset(&result, 0, sizeof(result));
     result.is_leaf = header->leftmost_ptr == GlobalAddress::Null();
@@ -812,12 +812,13 @@ bool Tree::page_search(GlobalAddress page_addr, const Key &k,
     assert(!result.is_leaf);
     result.next_level = ((InternalPage *)page_buffer)->records[0].ptr;
     result.slibing = GlobalAddress::Null();
+    return true;
   }
 #endif
 
 #ifdef RM_LEAF_AMPLIFICATION
   // Should run under YCSB C
-  if (next_is_leaf) {
+  if (is_search && next_is_leaf) {
     dsm->read_sync(page_buffer, page_addr, STRUCT_OFFSET(LeafPage, records) + sizeof(LeafEntry), cxt);
     memset(&result, 0, sizeof(result));
     result.is_leaf = header->leftmost_ptr == GlobalAddress::Null();

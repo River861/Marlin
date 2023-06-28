@@ -347,7 +347,7 @@ private:
 
   bool page_search(GlobalAddress page_addr, const Key &k, SearchResult &result,
                    CoroContext *cxt, int coro_id, bool from_cache = false, TmpResult* t_res = nullptr,
-                   bool next_is_leaf = false, bool cache_is_full = false);
+                   bool next_is_leaf = false, bool is_search = false);
   bool level_one_page_search(const Key &k, TmpResult* result,
                              CoroContext *cxt = nullptr, int coro_id = 0);
   void internal_page_search(InternalPage *page, const Key &k,
