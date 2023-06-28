@@ -483,7 +483,7 @@ bool Tree::search(const Key &k, Value &v, CoroContext *cxt, int coro_id) {
 
 
 next:
-  if (!page_search(p, k, result, cxt, coro_id, from_cache, nullptr, next_is_leaf, index_cache->is_full())) {
+  if (!page_search(p, k, result, cxt, coro_id, from_cache, nullptr, next_is_leaf, enable_cache ? index_cache->is_full() : true)) {
     if (from_cache) { // cache stale
       index_cache->invalidate(entry);
       cache_hit[dsm->getMyThreadID()]--;
