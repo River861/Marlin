@@ -462,7 +462,7 @@ int main(int argc, char *argv[]) {
     //   }
     // }
     if (count == 19) {
-      assert(warmup_cnts[0][0] > 100000);
+      assert(warmup_cnts[0][0] > 1000000);
     }
 #endif
     if (count >= TEST_EPOCH) {
