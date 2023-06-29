@@ -453,13 +453,16 @@ int main(int argc, char *argv[]) {
       printf("\n");
     }
 #ifdef RM_INTERNAL_AMPLIFICATION
-    uint64_t sum = 0;
-    bool is_ok = false;
-    for (int i = 0; !is_ok && i < MAX_APP_THREAD; ++ i) {
-      for (int j = 0; !is_ok && j < define::kMaxCoro; ++ j) {
-        sum += warmup_cnts[i][j];
-        printf("epoch=%d warmup cnts=%lu\n", count, sum);
-      }
+    // uint64_t sum = 0;
+    // bool is_ok = false;
+    // for (int i = 0; !is_ok && i < MAX_APP_THREAD; ++ i) {
+    //   for (int j = 0; !is_ok && j < define::kMaxCoro; ++ j) {
+    //     sum += warmup_cnts[i][j];
+    //     printf("epoch=%d warmup cnts=%lu\n", count, sum);
+    //   }
+    // }
+    if (count == 19) {
+      assert(warmup_cnts[0][0] > 100000);
     }
 #endif
     if (count >= TEST_EPOCH) {
