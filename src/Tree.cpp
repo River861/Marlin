@@ -28,7 +28,7 @@ uint64_t hot_filter_count[MAX_APP_THREAD][8];
 uint64_t latency[MAX_APP_THREAD][MAX_CORO_NUM][LATENCY_WINDOWS];
 volatile bool need_stop = false;
 
-#ifdef RM_INTERNAL_AMPLIFICATION
+#if defined(RM_INTERNAL_AMPLIFICATION) || defined(RM_LEAF_AMPLIFICATION)
 uint64_t warmup_cnts[MAX_APP_THREAD][define::kMaxCoro];
 #endif
 

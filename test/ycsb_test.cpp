@@ -44,7 +44,7 @@ extern uint64_t read_retry[MAX_APP_THREAD];
 extern uint64_t try_read[MAX_APP_THREAD];
 extern int g_root_level;
 
-#ifdef RM_INTERNAL_AMPLIFICATION
+#if defined(RM_INTERNAL_AMPLIFICATION) || defined(RM_LEAF_AMPLIFICATION)
 extern uint64_t warmup_cnts[MAX_APP_THREAD][define::kMaxCoro];
 #endif
 
