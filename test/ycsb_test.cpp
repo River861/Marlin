@@ -443,7 +443,18 @@ int main(int argc, char *argv[]) {
     uint64_t cluster_tp = dsm->sum((uint64_t)(per_node_tp * 1000));   // only node 0 return the sum
 
     printf("%d, throughput %.4f\n", dsm->getMyNodeID(), per_node_tp);
-
+#if defined(RM_INTERNAL_AMPLIFICATION) || defined(RM_LEAF_AMPLIFICATION)
+    uint64_t sum = 0;
+    for (int i = 0; i < MAX_APP_THREAD; ++ i) {
+      for (int j = 0; j < define::kMaxCoro; ++ j) {
+        sum += warmup_cnts[i][j];
+      }
+    }
+    printf("epoch=%d warmup_cnts=%lu\n", count, sum);
+    if (count == 19) {
+      assert(warmup_cnts[0][0] > 10000000);
+    }
+#endif
     if (dsm->getMyNodeID() == 0) {
       printf("epoch %d passed!\n", count);
       printf("cluster throughput %.3f Mops\n", cluster_tp / 1000.0);
@@ -452,18 +463,6 @@ int main(int argc, char *argv[]) {
       printf("tree height: %d\n", g_root_level);
       printf("\n");
     }
-#if defined(RM_INTERNAL_AMPLIFICATION) || defined(RM_LEAF_AMPLIFICATION)
-    uint64_t sum = 0;
-    for (int i = 0; i < MAX_APP_THREAD; ++ i) {
-      for (int j = 0; j < define::kMaxCoro; ++ j) {
-        sum += warmup_cnts[i][j];
-      }
-    }
-    printf("epoch=%d warmup cnts=%lu\n", count, sum);
-    if (count == 19) {
-      assert(warmup_cnts[0][0] > 1000000);
-    }
-#endif
     if (count >= TEST_EPOCH) {
       need_stop = true;
     }
