@@ -810,34 +810,37 @@ bool Tree::page_search(GlobalAddress page_addr, const Key &k,
   assert(STRUCT_OFFSET(LeafPage, hdr) == STRUCT_OFFSET(InternalPage, hdr));
   auto header = (Header *)(page_buffer + (STRUCT_OFFSET(LeafPage, hdr)));
 
-#ifdef RM_INTERNAL_AMPLIFICATION
-  // Should run under YCSB C
-  if (is_search && !next_is_leaf) {
+#if defined(RM_INTERNAL_AMPLIFICATION) || defined(RM_LEAF_AMPLIFICATION)
+  bool warmup_is_ok = false;
+  if (is_search) {
     ++ warmup_cnts[dsm->getMyThreadID()][coro_id];
     uint64_t sum = 0;
-    bool is_ok = false;
-    for (int i = 0; !is_ok && i < MAX_APP_THREAD; ++ i) {
-      for (int j = 0; !is_ok && j < define::kMaxCoro; ++ j) {
+    for (int i = 0; !warmup_is_ok && i < MAX_APP_THREAD; ++ i) {
+      for (int j = 0; !warmup_is_ok && j < define::kMaxCoro; ++ j) {
         sum += warmup_cnts[i][j];
-        if (sum > 1000000) is_ok = true, warmup_cnts[0][0] = sum;
+        if (sum > 200000) warmup_is_ok = true, warmup_cnts[0][0] = sum;
       }
     }
-    if (is_ok) {
-      dsm->read_sync(page_buffer, page_addr, STRUCT_OFFSET(InternalPage, records) + sizeof(InternalEntry), cxt);
-      memset(&result, 0, sizeof(result));
-      result.is_leaf = header->leftmost_ptr == GlobalAddress::Null();
-      result.level = header->level;
-      assert(!result.is_leaf);
-      result.next_level = ((InternalPage *)page_buffer)->records[0].ptr;
-      result.slibing = GlobalAddress::Null();
-      return true;
-    }
+  }
+#endif
+
+#ifdef RM_INTERNAL_AMPLIFICATION
+  // Should run under YCSB C
+  if (is_search && warmup_is_ok && !next_is_leaf) {
+    dsm->read_sync(page_buffer, page_addr, STRUCT_OFFSET(InternalPage, records) + sizeof(InternalEntry), cxt);
+    memset(&result, 0, sizeof(result));
+    result.is_leaf = header->leftmost_ptr == GlobalAddress::Null();
+    result.level = header->level;
+    assert(!result.is_leaf);
+    result.next_level = ((InternalPage *)page_buffer)->records[0].ptr;
+    result.slibing = GlobalAddress::Null();
+    return true;
   }
 #endif
 
 #ifdef RM_LEAF_AMPLIFICATION
   // Should run under YCSB C
-  if (is_search && next_is_leaf) {
+  if (is_search && warmup_is_ok && next_is_leaf) {
     dsm->read_sync(page_buffer, page_addr, STRUCT_OFFSET(LeafPage, records) + sizeof(LeafEntry), cxt);
     memset(&result, 0, sizeof(result));
     result.is_leaf = header->leftmost_ptr == GlobalAddress::Null();
@@ -908,7 +911,13 @@ re_read:
     }
 
     if (result.level == 1 && enable_cache) {
+#if defined(RM_INTERNAL_AMPLIFICATION) || defined(RM_LEAF_AMPLIFICATION)
+      if (is_search && !warmup_is_ok) {
+        index_cache->add_to_cache(page);
+      }
+#else
       index_cache->add_to_cache(page);  // 存放倒数第二层的到cache中
+#endif
       // if (enter_debug) {
       //   printf("add %lud [%lud %lud]\n", k, page->hdr.lowest,
       //          page->hdr.highest);

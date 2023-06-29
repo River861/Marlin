@@ -452,7 +452,7 @@ int main(int argc, char *argv[]) {
       printf("tree height: %d\n", g_root_level);
       printf("\n");
     }
-#ifdef RM_INTERNAL_AMPLIFICATION
+#if defined(RM_INTERNAL_AMPLIFICATION) || defined(RM_LEAF_AMPLIFICATION)
     // uint64_t sum = 0;
     // bool is_ok = false;
     // for (int i = 0; !is_ok && i < MAX_APP_THREAD; ++ i) {
@@ -462,7 +462,7 @@ int main(int argc, char *argv[]) {
     //   }
     // }
     if (count == 19) {
-      assert(warmup_cnts[0][0] > 1000000);
+      assert(warmup_cnts[0][0] > 200000);
     }
 #endif
     if (count >= TEST_EPOCH) {
