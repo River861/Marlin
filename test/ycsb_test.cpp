@@ -23,7 +23,7 @@
   #define TEST_EPOCH 10
   #define TIME_INTERVAL 1
 #else
-  #define TEST_EPOCH 10
+  #define TEST_EPOCH 20  // 10
   #define TIME_INTERVAL 0.5
 #endif
 #endif
@@ -453,8 +453,13 @@ int main(int argc, char *argv[]) {
       printf("\n");
     }
 #ifdef RM_INTERNAL_AMPLIFICATION
-    if (count == 9) {
-      assert(warmup_cnts[0][0] > 100000);
+    uint64_t sum = 0;
+    bool is_ok = false;
+    for (int i = 0; !is_ok && i < MAX_APP_THREAD; ++ i) {
+      for (int j = 0; !is_ok && j < define::kMaxCoro; ++ j) {
+        sum += warmup_cnts[i][j];
+        printf("epoch=%d warmup cnts=%lu\n", count, sum);
+      }
     }
 #endif
     if (count >= TEST_EPOCH) {

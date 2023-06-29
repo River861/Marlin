@@ -819,7 +819,7 @@ bool Tree::page_search(GlobalAddress page_addr, const Key &k,
     for (int i = 0; !is_ok && i < MAX_APP_THREAD; ++ i) {
       for (int j = 0; !is_ok && j < define::kMaxCoro; ++ j) {
         sum += warmup_cnts[i][j];
-        if (sum > 100000) is_ok = true, warmup_cnts[0][0] = sum;
+        if (sum > 10000000) is_ok = true, warmup_cnts[0][0] = sum;
       }
     }
     if (is_ok) {
