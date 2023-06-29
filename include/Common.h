@@ -55,7 +55,7 @@
 
 #define APP_MESSAGE_NR 96
 
-#define MAX_CORO_NUM 8
+#define MAX_CORO_NUM 16
 
 // }
 

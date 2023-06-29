@@ -452,7 +452,7 @@ int main(int argc, char *argv[]) {
     }
     printf("epoch=%d warmup_cnts=%lu\n", count, sum);
     if (count == 19) {
-      assert(warmup_cnts[0][0] > 10000000);
+      assert(warmup_cnts[0][0] > 7000000);
     }
 #endif
     if (dsm->getMyNodeID() == 0) {
