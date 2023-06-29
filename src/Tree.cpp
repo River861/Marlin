@@ -28,6 +28,10 @@ uint64_t hot_filter_count[MAX_APP_THREAD][8];
 uint64_t latency[MAX_APP_THREAD][MAX_CORO_NUM][LATENCY_WINDOWS];
 volatile bool need_stop = false;
 
+#ifdef RM_INTERNAL_AMPLIFICATION
+uint64_t warmup_cnts[MAX_APP_THREAD][define::kMaxCoro];
+#endif
+
 thread_local CoroCall Tree::worker[define::kMaxCoro];
 thread_local CoroCall Tree::master;
 thread_local GlobalAddress path_stack[define::kMaxCoro]
@@ -81,6 +85,10 @@ Tree::Tree(DSM *dsm, uint16_t tree_id) : dsm(dsm), tree_id(tree_id) {
   } else {
     // std::cout << "fail\n";
   }
+
+#ifdef RM_INTERNAL_AMPLIFICATION
+  memset(warmup_cnts, 0, sizeof(uint64_t) * MAX_APP_THREAD * define::kMaxCoro);
+#endif
 }
 
 void Tree::print_verbose() {
@@ -804,16 +812,26 @@ bool Tree::page_search(GlobalAddress page_addr, const Key &k,
 
 #ifdef RM_INTERNAL_AMPLIFICATION
   // Should run under YCSB C
-  static thread_local int warm_cnt = 100;
-  if (is_search && !next_is_leaf && (-- warm_cnt <= 0)) {
-    dsm->read_sync(page_buffer, page_addr, STRUCT_OFFSET(InternalPage, records) + sizeof(InternalEntry), cxt);
-    memset(&result, 0, sizeof(result));
-    result.is_leaf = header->leftmost_ptr == GlobalAddress::Null();
-    result.level = header->level;
-    assert(!result.is_leaf);
-    result.next_level = ((InternalPage *)page_buffer)->records[0].ptr;
-    result.slibing = GlobalAddress::Null();
-    return true;
+  if (is_search && !next_is_leaf) {
+    ++ warmup_cnts[dsm->getMyThreadID()][coro_id];
+    uint64_t sum = 0;
+    bool is_ok = false;
+    for (int i = 0; !is_ok && i < MAX_APP_THREAD; ++ i) {
+      for (int j = 0; !is_ok && j < define::kMaxCoro; ++ j) {
+        sum += warmup_cnts[i][j];
+        if (sum > 100000) is_ok = true, warmup_cnts[0][0] = sum;
+      }
+    }
+    if (is_ok) {
+      dsm->read_sync(page_buffer, page_addr, STRUCT_OFFSET(InternalPage, records) + sizeof(InternalEntry), cxt);
+      memset(&result, 0, sizeof(result));
+      result.is_leaf = header->leftmost_ptr == GlobalAddress::Null();
+      result.level = header->level;
+      assert(!result.is_leaf);
+      result.next_level = ((InternalPage *)page_buffer)->records[0].ptr;
+      result.slibing = GlobalAddress::Null();
+      return true;
+    }
   }
 #endif
 

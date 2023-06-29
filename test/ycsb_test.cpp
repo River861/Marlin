@@ -44,6 +44,10 @@ extern uint64_t read_retry[MAX_APP_THREAD];
 extern uint64_t try_read[MAX_APP_THREAD];
 extern int g_root_level;
 
+#ifdef RM_INTERNAL_AMPLIFICATION
+extern uint64_t warmup_cnts[MAX_APP_THREAD][define::kMaxCoro];
+#endif
+
 int kThreadCount;
 int kNodeCount;
 int kCoroCnt = 8;
@@ -448,6 +452,11 @@ int main(int argc, char *argv[]) {
       printf("tree height: %d\n", g_root_level);
       printf("\n");
     }
+#ifdef RM_INTERNAL_AMPLIFICATION
+    if (count == 9) {
+      assert(warmup_cnts[0][0] > 100000);
+    }
+#endif
     if (count >= TEST_EPOCH) {
       need_stop = true;
     }
