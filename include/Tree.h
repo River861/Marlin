@@ -222,6 +222,7 @@ private:
 public:
   LeafPage(uint32_t level = 0) : hdr() {
     hdr.level = level;
+    hdr.leftmost_ptr == GlobalAddress::Null();
     records[0].value = kValueNull;
 
     front_version = 0;
