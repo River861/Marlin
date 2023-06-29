@@ -22,7 +22,7 @@ public:
   IndexCache(int cache_size, DSM* dsm);
 
   bool add_to_cache(InternalPage *page);
-  const CacheEntry *search_from_cache(const Key &k, GlobalAddress *addr,
+  const CacheEntry *search_from_cache(const Key &k, GlobalAddress *addr, bool& next_is_leaf,
                                       bool is_leader = false);
 
   void search_range_from_cache(const Key &from, const Key &to,
@@ -150,7 +150,7 @@ inline bool IndexCache::add_to_cache(InternalPage *page) {
 }
 
 inline const CacheEntry *IndexCache::search_from_cache(const Key &k,
-                                                       GlobalAddress *addr, bool is_leader) {
+                                                       GlobalAddress *addr, bool& next_is_leaf, bool is_leader) {
   if (is_leader && !delay_free_list.empty()) { // try to free a page in the delay-free-list
     auto p = delay_free_list.front();
     if (asm_rdtsc() - p.second > 3000ull * 10) {
@@ -171,6 +171,7 @@ inline const CacheEntry *IndexCache::search_from_cache(const Key &k,
 
 
     page->index_cache_freq++;
+    next_is_leaf = page->hdr.level == 1;
 
     auto cnt = page->hdr.last_index + 1;
     if (k < page->records[0].key) {

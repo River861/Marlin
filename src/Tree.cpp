@@ -412,7 +412,8 @@ void Tree::insert(const Key &k, const Value &v, CoroContext *cxt, int coro_id) {
 
   if (enable_cache) {
     GlobalAddress cache_addr;
-    auto entry = index_cache->search_from_cache(k, &cache_addr);
+    bool next_is_leaf;
+    auto entry = index_cache->search_from_cache(k, &cache_addr, next_is_leaf);
     if (entry) { // cache hit
       auto root = get_root_ptr(cxt, coro_id);
       if (leaf_page_store(cache_addr, k, v, root, 0, cxt, coro_id, true)) {
@@ -472,7 +473,7 @@ bool Tree::search(const Key &k, Value &v, CoroContext *cxt, int coro_id) {
     GlobalAddress cache_addr;
     // uint64_t st, et, diff;
     // st = rdtsc();
-    entry = index_cache->search_from_cache(k, &cache_addr);
+    entry = index_cache->search_from_cache(k, &cache_addr, next_is_leaf);
     // et = rdtsc();
     if (entry) { // cache hit
       cache_hit[dsm->getMyThreadID()]++;
@@ -482,7 +483,6 @@ bool Tree::search(const Key &k, Value &v, CoroContext *cxt, int coro_id) {
       // cout_lock.lock();
       // std::cout << "search_cache_lat=" << diff << std::endl;
       // cout_lock.unlock();
-      next_is_leaf = true;
     } else {
       cache_miss[dsm->getMyThreadID()]++;
     }
