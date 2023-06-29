@@ -23,7 +23,7 @@
   #define TEST_EPOCH 10
   #define TIME_INTERVAL 1
 #else
-  #define TEST_EPOCH 20  // 10
+  #define TEST_EPOCH 10
   #define TIME_INTERVAL 0.5
 #endif
 #endif
@@ -451,7 +451,7 @@ int main(int argc, char *argv[]) {
       }
     }
     printf("epoch=%d warmup_cnts=%lu\n", count, sum);
-    if (count == 19) {
+    if (count == 9) {
       assert(warmup_cnts[0][0] > 7000000);
     }
 #endif
