@@ -519,7 +519,7 @@ next:
   } else {        // internal
     p = result.slibing != GlobalAddress::Null() ? result.slibing
                                                 : result.next_level;
-    next_is_leaf = result.level == 1;
+    next_is_leaf = result.slibing != GlobalAddress::Null() ? false : result.level == 1;
     goto next;
   }
 }
