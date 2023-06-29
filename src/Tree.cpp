@@ -912,7 +912,7 @@ re_read:
 
     if (result.level == 1 && enable_cache) {
 #if defined(RM_INTERNAL_AMPLIFICATION) || defined(RM_LEAF_AMPLIFICATION)
-      if (is_search && !warmup_is_ok) {
+      if (!(is_search && warmup_is_ok)) {
         index_cache->add_to_cache(page);
       }
 #else
