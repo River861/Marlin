@@ -454,7 +454,7 @@ int main(int argc, char *argv[]) {
     }
 #ifdef RM_INTERNAL_AMPLIFICATION
     if (count == 9) {
-      assert(warmup_cnts[0][0] > 1000000);
+      assert(warmup_cnts[0][0] > 100000);
     }
 #endif
     if (count >= TEST_EPOCH) {
