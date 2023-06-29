@@ -846,7 +846,7 @@ bool Tree::page_search(GlobalAddress page_addr, const Key &k,
     result.is_leaf = header->leftmost_ptr == GlobalAddress::Null();
     result.level = header->level;
     if (!result.is_leaf) {
-      printf("Level=%d\n", (int)level);
+      printf("Level=%d\n", (int)result.level);
     }
     assert(result.is_leaf);
     result.val = ((LeafPage *)page_buffer)->records[0].value;
