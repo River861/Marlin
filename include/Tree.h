@@ -146,7 +146,7 @@ class InternalPage {
 public:
   // this is called when tree grows
   InternalPage(GlobalAddress left, const Key &key, GlobalAddress right,
-               uint32_t level = 0) {
+               uint32_t level = 0) : hdr() {
     hdr.leftmost_ptr = left;
     hdr.level = level;
     records[0].key = key;
@@ -161,7 +161,7 @@ public:
     embedding_lock = 0;
   }
 
-  InternalPage(uint32_t level = 0) {
+  InternalPage(uint32_t level = 0) : hdr() {
     hdr.level = level;
     records[0].ptr = GlobalAddress::Null();
 
@@ -220,7 +220,7 @@ private:
   friend class Tree;
 
 public:
-  LeafPage(uint32_t level = 0) {
+  LeafPage(uint32_t level = 0) : hdr() {
     hdr.level = level;
     records[0].value = kValueNull;
 
