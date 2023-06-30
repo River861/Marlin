@@ -145,6 +145,7 @@ void work_func(Tree *tree, const Request& r, CoroContext *ctx, int coro_id) {
   else {
     std::map<Key, Value> ret;
     tree->range_query(r.k, r.k + r.range_size, ret);
+    printf("Return count: %d\n", (int)ret.size());
   }
 }
 
