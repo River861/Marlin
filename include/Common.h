@@ -122,8 +122,8 @@ constexpr uint8_t kMaxHandOverTime = 8;
 constexpr int kIndexCacheSize = 600;
 
 // KV
-constexpr uint32_t keyLen = 32;
-constexpr uint32_t simulatedValLen = 64;
+constexpr uint32_t keyLen = 8;
+constexpr uint32_t simulatedValLen = 8;
 } // namespace define
 
 static inline unsigned long long asm_rdtsc(void) {
