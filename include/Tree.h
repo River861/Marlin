@@ -137,7 +137,9 @@ class InternalPage {
     uint64_t embedding_lock;
     uint64_t index_cache_freq;
   };
-
+#ifdef TEST_FINE_GRAINED_LOCK
+  uint64_t _padding[kInternalCardinality];
+#endif
   uint8_t front_version;
   Header hdr;
   InternalEntry records[kInternalCardinality];
