@@ -1129,8 +1129,8 @@ bool Tree::leaf_page_store(GlobalAddress page_addr, const Key &k,
 
 #ifdef CONFIG_ENABLE_EMBEDDING_LOCK
 #ifdef TEST_FINE_GRAINED_LOCK
-  // auto idx = CityHash64((char *)&k, sizeof(Key)) % kLeafCardinality;
-  lock_addr = GADD(page_addr, STRUCT_OFFSET(LeafPage, kv_locks) + sizeof(uint64_t) * 0);
+  uint64_t idx = CityHash64((char *)&k, sizeof(Key)) % kLeafCardinality;
+  lock_addr = GADD(page_addr, STRUCT_OFFSET(LeafPage, kv_locks) + idx * sizeof(uint64_t));
 #else
   lock_addr = page_addr;
 #endif
