@@ -115,14 +115,17 @@ public:
   }
 } __attribute__((packed));
 
-constexpr int kInternalCardinality =
-    (kInternalPageSize - sizeof(Header) - sizeof(uint8_t) * 2 - sizeof(uint64_t) - sizeof(uint8_t) * 3 - 1) /
-    sizeof(InternalEntry);
 
 #ifdef TEST_FINE_GRAINED_LOCK
+constexpr int kInternalCardinality =
+    (kInternalPageSize - sizeof(Header) - sizeof(uint8_t) * 2 - sizeof(uint64_t) - sizeof(uint8_t) * 3 - 1) / (sizeof(InternalEntry) + 8);
+
 constexpr int kLeafCardinality =
     (kLeafPageSize - sizeof(Header) - sizeof(uint8_t) * 2 - sizeof(uint64_t) - sizeof(uint8_t) - 1) / (sizeof(LeafEntry) + 8);
 #else
+constexpr int kInternalCardinality =
+    (kInternalPageSize - sizeof(Header) - sizeof(uint8_t) * 2 - sizeof(uint64_t) - sizeof(uint8_t) * 3 - 1) / sizeof(InternalEntry);
+
 constexpr int kLeafCardinality =
     (kLeafPageSize - sizeof(Header) - sizeof(uint8_t) * 2 - sizeof(uint64_t) - sizeof(uint8_t) - 1) / sizeof(LeafEntry);
 #endif
@@ -218,7 +221,7 @@ private:
     uint64_t embedding_lock;
   };
 #ifdef TEST_FINE_GRAINED_LOCK
-  uint64_t kv_locks[kInternalCardinality];
+  uint64_t kv_locks[kLeafCardinality];
 #endif
   uint8_t front_version;
   Header hdr;
@@ -240,7 +243,7 @@ public:
 
     embedding_lock = 0;
 #ifdef TEST_FINE_GRAINED_LOCK
-    memset(kv_locks, 0, sizeof(uint64_t) * kInternalCardinality);
+    memset(kv_locks, 0, sizeof(uint64_t) * kLeafCardinality);
 #endif
   }
 

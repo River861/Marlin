@@ -172,10 +172,11 @@ constexpr uint32_t headerSizes[8]        = {35, 51, 83, 147, 275, 531, 1043, 206
 constexpr uint32_t internalEntrySizes[8] = {16, 24, 40, 72 , 136, 264, 520, 1032};  // keyLen: 8~1024
 constexpr uint32_t leafEntrySizes[8][8]  = {{18, 26, 42, 74, 138, 266, 522, 1034}, {26}, {42, 50, 66, 98, 162, 290, 546, 1058}, {74}, {138}, {266}, {522}, {1034}}; // keyLen: 8~1024 valLen=8~1024
 
-constexpr uint32_t kInternalPageSize = spanSize * internalEntrySizes[idx_1]    + headerSizes[idx_1] + 14;
 #ifdef TEST_FINE_GRAINED_LOCK
+constexpr uint32_t kInternalPageSize = spanSize * (internalEntrySizes[idx_1] + 8)    + headerSizes[idx_1] + 14;
 constexpr uint32_t kLeafPageSize     = spanSize * (leafEntrySizes[idx_1][idx_2] + 8) + headerSizes[idx_1] + 12;
 #else
+constexpr uint32_t kInternalPageSize = spanSize * internalEntrySizes[idx_1]    + headerSizes[idx_1] + 14;
 constexpr uint32_t kLeafPageSize     = spanSize * leafEntrySizes[idx_1][idx_2] + headerSizes[idx_1] + 12;
 #endif
 
