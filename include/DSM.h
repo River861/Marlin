@@ -173,7 +173,7 @@ public:
   char *get_rdma_buffer() { return rdma_buffer; }
   RdmaBuffer &get_rbuf(int coro_id) { return rbuf[coro_id]; }
 
-  GlobalAddress alloc(size_t size);
+  GlobalAddress alloc(size_t size, bool align = true);
   void free(GlobalAddress addr);
 
   void rpc_call_dir(const RawMessage &m, uint16_t node_id,
@@ -196,7 +196,7 @@ public:
   }
 };
 
-inline GlobalAddress DSM::alloc(size_t size) {
+inline GlobalAddress DSM::alloc(size_t size, bool align) {
 
   thread_local int next_target_node =
       (getMyThreadID() + getMyNodeID()) % MEMORY_NODE_NUM;
@@ -204,7 +204,7 @@ inline GlobalAddress DSM::alloc(size_t size) {
       (getMyThreadID() + getMyNodeID()) % NR_DIRECTORY;
 
   bool need_chunk = false;
-  auto addr = local_allocator.malloc(size, need_chunk);
+  auto addr = local_allocator.malloc(size, need_chunk, align);
   if (need_chunk) {
     RawMessage m;
     m.type = RpcType::MALLOC;
@@ -218,7 +218,7 @@ inline GlobalAddress DSM::alloc(size_t size) {
     }
 
     // retry
-    addr = local_allocator.malloc(size, need_chunk);
+    addr = local_allocator.malloc(size, need_chunk, align);
   }
 
   return addr;
