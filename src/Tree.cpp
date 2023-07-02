@@ -404,7 +404,7 @@ next:
 }
 
 
-void Tree::insert(const Key &k, const Value &v, CoroContext *cxt, int coro_id) {
+void Tree::insert(const Key &k, const Value &v, CoroContext *cxt, int coro_id, bool is_load) {
   assert(dsm->is_register());
 
   before_operation(cxt, coro_id);
@@ -454,7 +454,7 @@ next:
     }
   }
 
-  leaf_page_store(p, k, v, root, 0, cxt, coro_id, false);
+  leaf_page_store(p, k, v, root, 0, cxt, coro_id, false, is_load);
 }
 
 
@@ -828,7 +828,7 @@ bool Tree::page_search(GlobalAddress page_addr, const Key &k,
 #ifdef RM_INTERNAL_AMPLIFICATION
   // Should run under YCSB C
   if (is_search && warmup_is_ok && !next_is_leaf) {
-    dsm->read_sync(page_buffer, page_addr, STRUCT_OFFSET(InternalPage, records) + sizeof(InternalEntry), cxt);
+    dsm->read_sync(page_buffer, page_addr, (STRUCT_OFFSET(InternalPage, records)) + sizeof(InternalEntry), cxt);
     memset(&result, 0, sizeof(result));
     result.is_leaf = header->leftmost_ptr == GlobalAddress::Null();
     result.level = header->level;
@@ -842,7 +842,7 @@ bool Tree::page_search(GlobalAddress page_addr, const Key &k,
 #ifdef RM_LEAF_AMPLIFICATION
   // Should run under YCSB C
   if (is_search && warmup_is_ok && next_is_leaf) {
-    dsm->read_sync(page_buffer, page_addr, STRUCT_OFFSET(LeafPage, records) + sizeof(LeafEntry), cxt);
+    dsm->read_sync(page_buffer, page_addr, (STRUCT_OFFSET(LeafPage, records)) + sizeof(LeafEntry), cxt);
     memset(&result, 0, sizeof(result));
     result.is_leaf = header->leftmost_ptr == GlobalAddress::Null();
     result.level = header->level;
@@ -1120,7 +1120,7 @@ void Tree::internal_page_store(GlobalAddress page_addr, const Key &k,
 
 bool Tree::leaf_page_store(GlobalAddress page_addr, const Key &k,
                            const Value &v, GlobalAddress root, int level,
-                           CoroContext *cxt, int coro_id, bool from_cache) {
+                           CoroContext *cxt, int coro_id, bool from_cache, bool is_load) {
 
   uint64_t lock_index =
       CityHash64((char *)&page_addr, sizeof(page_addr)) % define::kNumOfLock;  // 可能是这里造成的死锁
@@ -1129,8 +1129,13 @@ bool Tree::leaf_page_store(GlobalAddress page_addr, const Key &k,
 
 #ifdef CONFIG_ENABLE_EMBEDDING_LOCK
 #ifdef TEST_FINE_GRAINED_LOCK
-  uint64_t idx = CityHash64((char *)&k, sizeof(Key)) % kLeafCardinality;
-  lock_addr = GADD(page_addr, STRUCT_OFFSET(LeafPage, kv_locks) + idx * sizeof(uint64_t));
+  if (is_load) {
+    lock_addr = page_addr;
+  }
+  else {
+    uint64_t idx = CityHash64((char *)&k, sizeof(Key)) % kLeafCardinality;
+    lock_addr = GADD(page_addr, (STRUCT_OFFSET(LeafPage, kv_locks)) + idx * sizeof(uint64_t));
+  }
 #else
   lock_addr = page_addr;
 #endif

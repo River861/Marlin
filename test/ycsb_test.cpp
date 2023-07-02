@@ -177,7 +177,7 @@ void thread_load(int id) {
       k = int2key(int_k);
 #endif
       assert(op == "INSERT");
-      tree->insert(k, randval(e));
+      tree->insert(k, randval(e), nullptr, 0, true);
       if (++ cnt % LOAD_HEARTBEAT == 0) {
         printf("thread %lu: %d load entries loaded.\n", loader_id, cnt);
       }
@@ -193,7 +193,7 @@ void thread_load(int id) {
       if (str_k[0] == '\0') continue;
       k = str2key(str_k);
       assert(op == "INSERT");
-      tree->insert(k, randval(e));
+      tree->insert(k, randval(e), nullptr, 0, true);
       if (++ cnt % LOAD_HEARTBEAT == 0) {
         printf("thread %lu: %d load entries loaded.\n", loader_id, cnt);
       }

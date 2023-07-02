@@ -306,7 +306,7 @@ public:
   using WorkFunc = std::function<void (Tree *, const Request&, CoroContext *, int)>;
   void run_coroutine(GenFunc gen_func, WorkFunc work_func, int coro_cnt, Request* req = nullptr, int req_num = 0);
 
-  void insert(const Key &k, const Value &v, CoroContext *cxt = nullptr, int coro_id = 0);
+  void insert(const Key &k, const Value &v, CoroContext *cxt = nullptr, int coro_id = 0, bool is_load = false);
   bool search(const Key &k, Value &v, CoroContext *cxt = nullptr, int coro_id = 0);
   void del(const Key &k, CoroContext *cxt = nullptr, int coro_id = 0);
 
@@ -382,7 +382,7 @@ private:
                            CoroContext *cxt, int coro_id);
   bool leaf_page_store(GlobalAddress page_addr, const Key &k, const Value &v,
                        GlobalAddress root, int level, CoroContext *cxt,
-                       int coro_id, bool from_cache = false);
+                       int coro_id, bool from_cache = false, bool is_load = false);
   void leaf_page_del(GlobalAddress page_addr, const Key &k, int level,
                      CoroContext *cxt, int coro_id);
 
