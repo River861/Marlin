@@ -1128,7 +1128,12 @@ bool Tree::leaf_page_store(GlobalAddress page_addr, const Key &k,
   GlobalAddress lock_addr;
 
 #ifdef CONFIG_ENABLE_EMBEDDING_LOCK
+#ifdef TEST_FINE_GRAINED_LOCK
+  auto idx = CityHash64((char *)&k, sizeof(Key)) % spanSize;
+  lock_addr = GADD(page_addr, STRUCT_OFFSET(LeafPage, records) + sizeof(LeafEntry) * idx + STRUCT_OFFSET(LeafEntry, kv_lock));
+#else
   lock_addr = page_addr;
+#endif
 #else
   lock_addr.nodeID = page_addr.nodeID;
   lock_addr.offset = lock_index * sizeof(uint64_t);

@@ -105,6 +105,9 @@ public:
     uint8_t _val_padding[define::simulatedValLen];
   };
   uint8_t r_version : 4;
+#ifdef TEST_FINE_GRAINED_LOCK
+  uint64_t kv_lock;
+#endif
 
   LeafEntry() {
     f_version = 0;
@@ -112,6 +115,9 @@ public:
     value = kValueNull;
     // key = 0;
     std::fill(key.begin(), key.end(), 0);
+#ifdef TEST_FINE_GRAINED_LOCK
+    kv_lock = 0;
+#endif
   }
 } __attribute__((packed));
 
