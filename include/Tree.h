@@ -169,6 +169,9 @@ public:
     rear_version = 0;
 
     embedding_lock = 0;
+#ifdef TEST_FINE_GRAINED_LOCK
+    memset(_padding, 0, sizeof(uint64_t) * kInternalCardinality);
+#endif
   }
 
   InternalPage(uint32_t level = 0) : hdr() {
@@ -179,6 +182,9 @@ public:
     rear_version = 0;
 
     embedding_lock = 0;
+#ifdef TEST_FINE_GRAINED_LOCK
+    memset(_padding, 0, sizeof(uint64_t) * kInternalCardinality);
+#endif
   }
 
   void set_consistent() {
