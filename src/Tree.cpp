@@ -416,7 +416,7 @@ void Tree::insert(const Key &k, const Value &v, CoroContext *cxt, int coro_id, b
     auto entry = index_cache->search_from_cache(k, &cache_addr, next_is_leaf);
     if (entry) { // cache hit
       auto root = get_root_ptr(cxt, coro_id);
-      if (leaf_page_store(cache_addr, k, v, root, 0, cxt, coro_id, true)) {
+      if (leaf_page_store(cache_addr, k, v, root, 0, cxt, coro_id, true, is_load)) {
 
         cache_hit[dsm->getMyThreadID()]++;
         return;
