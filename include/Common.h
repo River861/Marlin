@@ -143,7 +143,8 @@ constexpr Value kValueNull = 0;
 constexpr Value kValueMin = 1;
 constexpr Value kValueMax = std::numeric_limits<Value>::max();
 // fixed
-constexpr int spanSize = 2;
+constexpr int leafSpanSize = 2;
+constexpr int internalSpanSize = 32;
 
 
 // calculate kInternalPageSize and kLeafPageSize
@@ -173,11 +174,11 @@ constexpr uint32_t internalEntrySizes[8] = {16, 24, 40, 72 , 136, 264, 520, 1032
 constexpr uint32_t leafEntrySizes[8][8]  = {{18, 26, 42, 74, 138, 266, 522, 1034}, {26}, {42, 50, 66, 98, 162, 290, 546, 1058}, {74}, {138}, {266}, {522}, {1034}}; // keyLen: 8~1024 valLen=8~1024
 
 #ifdef TEST_FINE_GRAINED_LOCK
-constexpr uint32_t kInternalPageSize = spanSize * (internalEntrySizes[idx_1] + 8)    + headerSizes[idx_1] + 14;
-constexpr uint32_t kLeafPageSize     = spanSize * (leafEntrySizes[idx_1][idx_2] + 8) + headerSizes[idx_1] + 12;
+constexpr uint32_t kInternalPageSize = internalSpanSize * (internalEntrySizes[idx_1] + 8)    + headerSizes[idx_1] + 14;
+constexpr uint32_t kLeafPageSize     = leafSpanSize * (leafEntrySizes[idx_1][idx_2] + 8) + headerSizes[idx_1] + 12;
 #else
-constexpr uint32_t kInternalPageSize = spanSize * internalEntrySizes[idx_1]    + headerSizes[idx_1] + 14;
-constexpr uint32_t kLeafPageSize     = spanSize * leafEntrySizes[idx_1][idx_2] + headerSizes[idx_1] + 12;
+constexpr uint32_t kInternalPageSize = internalSpanSize * internalEntrySizes[idx_1]    + headerSizes[idx_1] + 14;
+constexpr uint32_t kLeafPageSize     = leafSpanSize * leafEntrySizes[idx_1][idx_2] + headerSizes[idx_1] + 12;
 #endif
 
 __inline__ unsigned long long rdtsc(void) {

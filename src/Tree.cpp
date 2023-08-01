@@ -688,7 +688,7 @@ uint64_t Tree::range_query(const Key &from, const Key &to, std::map<Key, Value> 
 
   // FIXME: here, we assume all innernal nodes are cached in compute node
   if (result.empty()) {
-    for(auto k = from; k < to; k = k + spanSize) search(k, ret[k], cxt, coro_id);  // load into cache
+    for(auto k = from; k < to; k = k + leafSpanSize) search(k, ret[k], cxt, coro_id);  // load into cache
     printf("loading cache...");
     return 0;
   }

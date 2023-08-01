@@ -130,8 +130,8 @@ constexpr int kLeafCardinality =
     (kLeafPageSize - sizeof(Header) - sizeof(uint8_t) * 2 - sizeof(uint64_t) - sizeof(uint8_t) - 1) / sizeof(LeafEntry);
 #endif
 
-static_assert(kInternalCardinality == spanSize);
-static_assert(kLeafCardinality == spanSize);
+static_assert(kInternalCardinality == internalSpanSize);
+static_assert(kLeafCardinality == leafSpanSize);
 
 class InternalPage {
   // private:
