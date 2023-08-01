@@ -143,7 +143,7 @@ constexpr Value kValueNull = 0;
 constexpr Value kValueMin = 1;
 constexpr Value kValueMax = std::numeric_limits<Value>::max();
 // fixed
-constexpr int spanSize = 32;
+constexpr int spanSize = 16;
 
 
 // calculate kInternalPageSize and kLeafPageSize
