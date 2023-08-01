@@ -300,7 +300,7 @@ inline void IndexCache::statistics() {
                                        << " free_entry_cnt=" << free_page_cnt
                                        << " free_size=" << free_page_cnt * sizeof(InternalPage) / define::MB << " MB"
                                        << " skiplist_node_cnt=" << skiplist_node_cnt << " ----- " << std::endl;
-  std::cout << " comsumed cache size=" << (double)cache_size - (double)free_page_cnt * sizeof(InternalPage) / define::MB << " MB" << std::endl;
+  std::cout << "comsumed cache size=" << (double)cache_size - (double)free_page_cnt * sizeof(InternalPage) / define::MB << " MB" << std::endl;
   std::map<int, int64_t> cnt;
   CacheSkipList::Iterator iter(skiplist);
   iter.SeekToFirst();
