@@ -119,7 +119,7 @@ constexpr int64_t kPerCoroRdmaBuf = kPerThreadRdmaBuf / kMaxCoro;
 
 constexpr uint8_t kMaxHandOverTime = 8;
 
-constexpr int kIndexCacheSize = 600;
+constexpr int kIndexCacheSize = 1000;
 
 // KV
 constexpr uint32_t keyLen = 8;
