@@ -119,7 +119,7 @@ constexpr int64_t kPerCoroRdmaBuf = kPerThreadRdmaBuf / kMaxCoro;
 
 constexpr uint8_t kMaxHandOverTime = 8;
 
-constexpr int kIndexCacheSize = 1000;
+constexpr int kIndexCacheSize = 6000;
 
 // KV
 constexpr uint32_t keyLen = 8;
@@ -143,7 +143,7 @@ constexpr Value kValueNull = 0;
 constexpr Value kValueMin = 1;
 constexpr Value kValueMax = std::numeric_limits<Value>::max();
 // fixed
-constexpr int spanSize = 8;
+constexpr int spanSize = 1;
 
 
 // calculate kInternalPageSize and kLeafPageSize
