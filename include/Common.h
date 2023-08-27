@@ -93,7 +93,7 @@ constexpr uint64_t GB = 1024ull * MB;
 constexpr uint16_t kCacheLineSize = 64;
 
 // for remote allocate
-constexpr uint64_t dsmSize    = 64;        // GB  [CONFIG]
+constexpr uint64_t dsmSize    = 8;        // GB  [CONFIG] 64
 constexpr uint64_t kChunkSize = 16 * MB;
 
 // for store root pointer
@@ -113,7 +113,7 @@ constexpr uint64_t kNumOfLock = kLockChipMemSize / sizeof(uint64_t);
 constexpr uint64_t kMaxLevelOfTree = 16;
 
 constexpr uint16_t kMaxCoro = MAX_CORO_NUM;
-constexpr uint64_t rdmaBufferSize    = 4;         // GB  [CONFIG]
+constexpr uint64_t rdmaBufferSize    = 1;         // GB  [CONFIG] 4
 constexpr int64_t kPerThreadRdmaBuf  = rdmaBufferSize * define::GB / MAX_APP_THREAD;
 constexpr int64_t kPerCoroRdmaBuf = kPerThreadRdmaBuf / kMaxCoro;
 
