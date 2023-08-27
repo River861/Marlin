@@ -19,9 +19,11 @@
 #define DCT_ACCESS_KEY 3185
 #define UD_PKEY 0x11111111
 #define PSN 3185
-#define NET_DEV_NAME "enp202s0f0" // [CONFIG]
-#define IB_DEV_NAME_IDX '2'       // [CONFIG]
-#define MLX_PORT 1                // [CONFIG]
+#define NET_DEV_NAME "eno1d1" // [CONFIG] enp202s0f0   (check from ifconfig)
+#define IB_DEV_NAME_IDX '0'   // [CONFIG] 2            (check from ibdev2netdev)
+#define MLX_PORT 2            // [CONFIG] 1            (check from ibdev2netdev)
+#define MLX_GID 1             // [CONFIG] 1            (check from show_gids)
+#define IBV_MTU IBV_MTU_1024  // [CONFIG] IBV_MTU_4096 (check from ifconfig)
 #define ON_CHIP_SIZE 128
 
 
@@ -64,7 +66,7 @@ struct Region {
 };
 
 //// Resource.cpp
-bool createContext(RdmaContext *context, uint8_t port = MLX_PORT, int gidIndex = 1,
+bool createContext(RdmaContext *context, uint8_t port = MLX_PORT, int gidIndex = MLX_GID,
                    uint8_t devIndex = 0);
 bool destoryContext(RdmaContext *context);
 

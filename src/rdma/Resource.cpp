@@ -249,7 +249,7 @@ bool createDCTarget(ibv_exp_dct **dct, ibv_cq *cq, RdmaContext *context,
   dAttr.min_rnr_timer = 2;
   dAttr.tclass = 0;
   dAttr.flow_label = 0;
-  dAttr.mtu = IBV_MTU_4096;  //  [CONFIG]
+  dAttr.mtu = IBV_MTU;
   dAttr.pkey_index = 0;
   dAttr.hop_limit = 1;
   dAttr.create_flags = 0;
