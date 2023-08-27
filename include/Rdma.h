@@ -24,6 +24,7 @@
 #define MLX_PORT 2            // [CONFIG] 1            (check from ibdev2netdev)
 #define MLX_GID 1             // [CONFIG] 1            (check from show_gids)
 #define IBV_MTU IBV_MTU_1024  // [CONFIG] IBV_MTU_4096 (check from ifconfig)
+#define MAX_ATOMIC_ARG 8      // [CONFIG] 32
 #define ON_CHIP_SIZE 128
 
 

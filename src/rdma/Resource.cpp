@@ -199,7 +199,7 @@ bool createQueuePair(ibv_qp **qp, ibv_qp_type mode, ibv_cq *send_cq,
   if (mode == IBV_QPT_RC) {
     attr.comp_mask = IBV_EXP_QP_INIT_ATTR_CREATE_FLAGS |
                      IBV_EXP_QP_INIT_ATTR_PD | IBV_EXP_QP_INIT_ATTR_ATOMICS_ARG;
-    attr.max_atomic_arg = 32;  // [CONFIG]
+    attr.max_atomic_arg = MAX_ATOMIC_ARG;
   } else {
     attr.comp_mask = IBV_EXP_QP_INIT_ATTR_PD;
   }
