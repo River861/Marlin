@@ -166,19 +166,28 @@ constexpr int find_len_idx(uint32_t len) {
         );
 }
 constexpr int idx_1 = find_len_idx(define::keyLen);
-constexpr int idx_2 = find_len_idx(define::simulatedValLen);
-static_assert(idx_2 >= 0);
+// constexpr int idx_2 = find_len_idx(define::simulatedValLen);
+// static_assert(idx_2 >= 0);
 
 constexpr uint32_t headerSizes[8]        = {35, 51, 83, 147, 275, 531, 1043, 2067}; // keyLen: 8~1024
 constexpr uint32_t internalEntrySizes[8] = {16, 24, 40, 72 , 136, 264, 520, 1032};  // keyLen: 8~1024
-constexpr uint32_t leafEntrySizes[8][8]  = {{18, 26, 42, 74, 138, 266, 522, 1034}, {26}, {42, 50, 66, 98, 162, 290, 546, 1058}, {74}, {138}, {266}, {522}, {1034}}; // keyLen: 8~1024 valLen=8~1024
+// constexpr uint32_t leafEntrySizes[8][8]  = {{18, 26, 42, 74, 138, 266, 522, 1034},  // keyLen=8 valLen=8~1024  
+//                                             {26},  // keyLen=16 valLen=8~1024
+//                                             {42, 50, 66, 98, 162, 290, 546, 1058},  // keyLen=32 valLen=8~1024
+//                                             {74},  // keyLen=64 valLen=8~1024
+//                                             {138},  // keyLen=128 valLen=8~1024
+//                                             {266}, // keyLen=256 valLen=8~1024
+//                                             {522},
+//                                             {1034}};
 
 #ifdef TEST_FINE_GRAINED_LOCK
 constexpr uint32_t kInternalPageSize = internalSpanSize * (internalEntrySizes[idx_1] + 8)    + headerSizes[idx_1] + 14;
-constexpr uint32_t kLeafPageSize     = leafSpanSize * (leafEntrySizes[idx_1][idx_2] + 8) + headerSizes[idx_1] + 12;
+// constexpr uint32_t kLeafPageSize     = leafSpanSize * (leafEntrySizes[idx_1][idx_2] + 8) + headerSizes[idx_1] + 12;
+constexpr uint32_t kLeafPageSize     = leafSpanSize * (define::keyLen + define::simulatedValLen + 2 + 8) + headerSizes[idx_1] + 12;
 #else
 constexpr uint32_t kInternalPageSize = internalSpanSize * internalEntrySizes[idx_1]    + headerSizes[idx_1] + 14;
-constexpr uint32_t kLeafPageSize     = leafSpanSize * leafEntrySizes[idx_1][idx_2] + headerSizes[idx_1] + 12;
+// constexpr uint32_t kLeafPageSize     = leafSpanSize * leafEntrySizes[idx_1][idx_2] + headerSizes[idx_1] + 12;
+constexpr uint32_t kLeafPageSize     = leafSpanSize * (define::keyLen + define::simulatedValLen + 2) + headerSizes[idx_1] + 12;
 #endif
 
 __inline__ unsigned long long rdtsc(void) {
