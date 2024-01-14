@@ -28,10 +28,6 @@ uint64_t hot_filter_count[MAX_APP_THREAD][8];
 uint64_t latency[MAX_APP_THREAD][MAX_CORO_NUM][LATENCY_WINDOWS];
 volatile bool need_stop = false;
 
-#if defined(RM_INTERNAL_AMPLIFICATION) || defined(RM_LEAF_AMPLIFICATION)
-uint64_t warmup_cnts[MAX_APP_THREAD][define::kMaxCoro];
-#endif
-
 thread_local CoroCall Tree::worker[define::kMaxCoro];
 thread_local CoroCall Tree::master;
 thread_local GlobalAddress path_stack[define::kMaxCoro]
@@ -85,10 +81,6 @@ Tree::Tree(DSM *dsm, uint16_t tree_id) : dsm(dsm), tree_id(tree_id) {
   } else {
     // std::cout << "fail\n";
   }
-
-#ifdef RM_INTERNAL_AMPLIFICATION
-  memset(warmup_cnts, 0, sizeof(uint64_t) * MAX_APP_THREAD * define::kMaxCoro);
-#endif
 }
 
 void Tree::print_verbose() {
@@ -404,7 +396,7 @@ next:
 }
 
 
-void Tree::insert(const Key &k, const Value &v, CoroContext *cxt, int coro_id, bool is_load) {
+void Tree::insert(const Key &k, const Value &v, CoroContext *cxt, int coro_id) {
   assert(dsm->is_register());
 
   before_operation(cxt, coro_id);
@@ -412,11 +404,10 @@ void Tree::insert(const Key &k, const Value &v, CoroContext *cxt, int coro_id, b
 
   if (enable_cache) {
     GlobalAddress cache_addr;
-    bool next_is_leaf;
-    auto entry = index_cache->search_from_cache(k, &cache_addr, next_is_leaf);
+    auto entry = index_cache->search_from_cache(k, &cache_addr);
     if (entry) { // cache hit
       auto root = get_root_ptr(cxt, coro_id);
-      if (leaf_page_store(cache_addr, k, v, root, 0, cxt, coro_id, true, is_load)) {
+      if (leaf_page_store(cache_addr, k, v, root, 0, cxt, coro_id, true)) {
 
         cache_hit[dsm->getMyThreadID()]++;
         return;
@@ -454,7 +445,7 @@ next:
     }
   }
 
-  leaf_page_store(p, k, v, root, 0, cxt, coro_id, false, is_load);
+  leaf_page_store(p, k, v, root, 0, cxt, coro_id, false);
 }
 
 
@@ -465,7 +456,6 @@ bool Tree::search(const Key &k, Value &v, CoroContext *cxt, int coro_id) {
   SearchResult result;
 
   GlobalAddress p = root;
-  bool next_is_leaf = false;
 
   bool from_cache = false;
   const CacheEntry *entry = nullptr;
@@ -473,7 +463,7 @@ bool Tree::search(const Key &k, Value &v, CoroContext *cxt, int coro_id) {
     GlobalAddress cache_addr;
     // uint64_t st, et, diff;
     // st = rdtsc();
-    entry = index_cache->search_from_cache(k, &cache_addr, next_is_leaf);
+    entry = index_cache->search_from_cache(k, &cache_addr);
     // et = rdtsc();
     if (entry) { // cache hit
       cache_hit[dsm->getMyThreadID()]++;
@@ -489,9 +479,8 @@ bool Tree::search(const Key &k, Value &v, CoroContext *cxt, int coro_id) {
   }
   try_read[dsm->getMyThreadID()] ++;
 
-
 next:
-  if (!page_search(p, k, result, cxt, coro_id, from_cache, nullptr, next_is_leaf, true)) {
+  if (!page_search(p, k, result, cxt, coro_id, from_cache)) {
     if (from_cache) { // cache stale
       index_cache->invalidate(entry);
       cache_hit[dsm->getMyThreadID()]--;
@@ -499,7 +488,6 @@ next:
       from_cache = false;
 
       p = root;
-      next_is_leaf = false;
     } else {
       // std::cout << "SEARCH WARNING search" << std::endl;
       // sleep(1);
@@ -507,7 +495,6 @@ next:
     goto next;
   }
   if (result.is_leaf) {
-    assert(next_is_leaf);
     if (result.val != kValueNull) { // find
       v = result.val;
       return true;
@@ -520,7 +507,6 @@ next:
   } else {        // internal
     p = result.slibing != GlobalAddress::Null() ? result.slibing
                                                 : result.next_level;
-    next_is_leaf = result.slibing != GlobalAddress::Null() ? false : result.level == 1;
     goto next;
   }
 }
@@ -688,7 +674,7 @@ uint64_t Tree::range_query(const Key &from, const Key &to, std::map<Key, Value> 
 
   // FIXME: here, we assume all innernal nodes are cached in compute node
   if (result.empty()) {
-    for(auto k = from; k < to; k = k + leafSpanSize) search(k, ret[k], cxt, coro_id);  // load into cache
+    for(auto k = from; k < to; k = k + spanSize) search(k, ret[k], cxt, coro_id);  // load into cache
     printf("loading cache...");
     return 0;
   }
@@ -806,53 +792,10 @@ next:
 
 bool Tree::page_search(GlobalAddress page_addr, const Key &k,
                        SearchResult &result, CoroContext *cxt, int coro_id,
-                       bool from_cache, TmpResult* t_res, bool next_is_leaf, bool is_search) {
+                       bool from_cache, TmpResult* t_res) {
   auto page_buffer = (dsm->get_rbuf(coro_id)).get_page_buffer();
   assert(STRUCT_OFFSET(LeafPage, hdr) == STRUCT_OFFSET(InternalPage, hdr));
   auto header = (Header *)(page_buffer + (STRUCT_OFFSET(LeafPage, hdr)));
-
-#if defined(RM_INTERNAL_AMPLIFICATION) || defined(RM_LEAF_AMPLIFICATION)
-  bool warmup_is_ok = false;
-  if (is_search) {
-    ++ warmup_cnts[dsm->getMyThreadID()][coro_id];
-    uint64_t sum = 0;
-    for (int i = 0; !warmup_is_ok && i < MAX_APP_THREAD; ++ i) {
-      for (int j = 0; !warmup_is_ok && j < define::kMaxCoro; ++ j) {
-        sum += warmup_cnts[i][j];
-        if (sum > 7000000) warmup_is_ok = true, warmup_cnts[0][0] = sum;
-      }
-    }
-  }
-#endif
-
-#ifdef RM_INTERNAL_AMPLIFICATION
-  // Should run under YCSB C
-  if (is_search && warmup_is_ok && !next_is_leaf) {
-    dsm->read_sync(page_buffer, page_addr, (STRUCT_OFFSET(InternalPage, records)) + sizeof(InternalEntry), cxt);
-    memset(&result, 0, sizeof(result));
-    result.is_leaf = header->leftmost_ptr == GlobalAddress::Null();
-    result.level = header->level;
-    assert(!result.is_leaf);
-    result.next_level = ((InternalPage *)page_buffer)->records[0].ptr;
-    result.slibing = GlobalAddress::Null();
-    return true;
-  }
-#endif
-
-#ifdef RM_LEAF_AMPLIFICATION
-  // Should run under YCSB C
-  if (is_search && warmup_is_ok && next_is_leaf) {
-    dsm->read_sync(page_buffer, page_addr, (STRUCT_OFFSET(LeafPage, records)) + sizeof(LeafEntry), cxt);
-    memset(&result, 0, sizeof(result));
-    result.is_leaf = header->leftmost_ptr == GlobalAddress::Null();
-    result.level = header->level;
-    assert(result.is_leaf);
-    result.val = ((LeafPage *)page_buffer)->records[0].value;
-    result.slibing = GlobalAddress::Null();
-    return true;
-  }
-#endif
-
   auto &pattern_cnt = pattern[dsm->getMyThreadID()][page_addr.nodeID];
 
   int counter = 0;
@@ -912,13 +855,7 @@ re_read:
     }
 
     if (result.level == 1 && enable_cache) {
-#if defined(RM_INTERNAL_AMPLIFICATION) || defined(RM_LEAF_AMPLIFICATION)
-      if (!(is_search && warmup_is_ok)) {
-        index_cache->add_to_cache(page);
-      }
-#else
       index_cache->add_to_cache(page);  // 存放倒数第二层的到cache中
-#endif
       // if (enter_debug) {
       //   printf("add %lud [%lud %lud]\n", k, page->hdr.lowest,
       //          page->hdr.highest);
@@ -1120,7 +1057,7 @@ void Tree::internal_page_store(GlobalAddress page_addr, const Key &k,
 
 bool Tree::leaf_page_store(GlobalAddress page_addr, const Key &k,
                            const Value &v, GlobalAddress root, int level,
-                           CoroContext *cxt, int coro_id, bool from_cache, bool is_load) {
+                           CoroContext *cxt, int coro_id, bool from_cache) {
 
   uint64_t lock_index =
       CityHash64((char *)&page_addr, sizeof(page_addr)) % define::kNumOfLock;  // 可能是这里造成的死锁
@@ -1128,17 +1065,7 @@ bool Tree::leaf_page_store(GlobalAddress page_addr, const Key &k,
   GlobalAddress lock_addr;
 
 #ifdef CONFIG_ENABLE_EMBEDDING_LOCK
-#ifdef TEST_FINE_GRAINED_LOCK
-  if (is_load) {
-    lock_addr = page_addr;
-  }
-  else {
-    uint64_t idx = CityHash64((char *)&k, sizeof(Key)) % kLeafCardinality;
-    lock_addr = GADD(page_addr, (STRUCT_OFFSET(LeafPage, kv_locks)) + idx * sizeof(uint64_t));
-  }
-#else
   lock_addr = page_addr;
-#endif
 #else
   lock_addr.nodeID = page_addr.nodeID;
   lock_addr.offset = lock_index * sizeof(uint64_t);

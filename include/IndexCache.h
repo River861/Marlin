@@ -22,7 +22,7 @@ public:
   IndexCache(int cache_size, DSM* dsm);
 
   bool add_to_cache(InternalPage *page);
-  const CacheEntry *search_from_cache(const Key &k, GlobalAddress *addr, bool& next_is_leaf,
+  const CacheEntry *search_from_cache(const Key &k, GlobalAddress *addr,
                                       bool is_leader = false);
 
   void search_range_from_cache(const Key &from, const Key &to,
@@ -39,8 +39,6 @@ public:
   void statistics();
 
   void bench();
-
-  bool is_full();
 
 private:
   uint64_t cache_size; // MB;
@@ -71,10 +69,6 @@ inline IndexCache::IndexCache(int cache_size, DSM* dsm) : cache_size(cache_size)
   all_page_cnt = memory_size / sizeof(InternalPage);
   free_page_cnt.store(all_page_cnt);
   skiplist_node_cnt.store(0);
-}
-
-inline bool IndexCache::is_full() {
-  return free_page_cnt.load() == 0;
 }
 
 // [from, to）
@@ -150,7 +144,7 @@ inline bool IndexCache::add_to_cache(InternalPage *page) {
 }
 
 inline const CacheEntry *IndexCache::search_from_cache(const Key &k,
-                                                       GlobalAddress *addr, bool& next_is_leaf, bool is_leader) {
+                                                       GlobalAddress *addr, bool is_leader) {
   if (is_leader && !delay_free_list.empty()) { // try to free a page in the delay-free-list
     auto p = delay_free_list.front();
     if (asm_rdtsc() - p.second > 3000ull * 10) {
@@ -171,7 +165,6 @@ inline const CacheEntry *IndexCache::search_from_cache(const Key &k,
 
 
     page->index_cache_freq++;
-    next_is_leaf = page->hdr.level == 1;
 
     auto cnt = page->hdr.last_index + 1;
     if (k < page->records[0].key) {
@@ -300,7 +293,6 @@ inline void IndexCache::statistics() {
                                        << " free_entry_cnt=" << free_page_cnt
                                        << " free_size=" << free_page_cnt * sizeof(InternalPage) / define::MB << " MB"
                                        << " skiplist_node_cnt=" << skiplist_node_cnt << " ----- " << std::endl;
-  std::cout << "comsumed cache size=" << (double)cache_size - (double)free_page_cnt * sizeof(InternalPage) / define::MB << " MB" << std::endl;
   std::map<int, int64_t> cnt;
   CacheSkipList::Iterator iter(skiplist);
   iter.SeekToFirst();

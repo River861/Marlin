@@ -34,7 +34,7 @@
 #define USE_CORO
 #define EPOCH_LAT_TEST
 // #define NO_WRITE_CONFLICT  // NO_WRITE_CONFLICT only support int workloads
-#define LOADER_NUM 4 // [CONFIG] 8
+#define LOADER_NUM 8
 
 extern uint64_t cache_miss[MAX_APP_THREAD];
 extern uint64_t cache_hit[MAX_APP_THREAD];
@@ -43,10 +43,6 @@ extern uint64_t try_lock[MAX_APP_THREAD];
 extern uint64_t read_retry[MAX_APP_THREAD];
 extern uint64_t try_read[MAX_APP_THREAD];
 extern int g_root_level;
-
-#if defined(RM_INTERNAL_AMPLIFICATION) || defined(RM_LEAF_AMPLIFICATION)
-extern uint64_t warmup_cnts[MAX_APP_THREAD][define::kMaxCoro];
-#endif
 
 int kThreadCount;
 int kNodeCount;
@@ -177,7 +173,7 @@ void thread_load(int id) {
       k = int2key(int_k);
 #endif
       assert(op == "INSERT");
-      tree->insert(k, randval(e), nullptr, 0, true);
+      tree->insert(k, randval(e));
       if (++ cnt % LOAD_HEARTBEAT == 0) {
         printf("thread %lu: %d load entries loaded.\n", loader_id, cnt);
       }
@@ -193,7 +189,7 @@ void thread_load(int id) {
       if (str_k[0] == '\0') continue;
       k = str2key(str_k);
       assert(op == "INSERT");
-      tree->insert(k, randval(e), nullptr, 0, true);
+      tree->insert(k, randval(e));
       if (++ cnt % LOAD_HEARTBEAT == 0) {
         printf("thread %lu: %d load entries loaded.\n", loader_id, cnt);
       }
@@ -443,18 +439,7 @@ int main(int argc, char *argv[]) {
     uint64_t cluster_tp = dsm->sum((uint64_t)(per_node_tp * 1000));   // only node 0 return the sum
 
     printf("%d, throughput %.4f\n", dsm->getMyNodeID(), per_node_tp);
-#if defined(RM_INTERNAL_AMPLIFICATION) || defined(RM_LEAF_AMPLIFICATION)
-    uint64_t sum = 0;
-    for (int i = 0; i < MAX_APP_THREAD; ++ i) {
-      for (int j = 0; j < define::kMaxCoro; ++ j) {
-        sum += warmup_cnts[i][j];
-      }
-    }
-    printf("epoch=%d warmup_cnts=%lu\n", count, sum);
-    if (count == 9) {
-      assert(warmup_cnts[0][0] > 7000000);
-    }
-#endif
+
     if (dsm->getMyNodeID() == 0) {
       printf("epoch %d passed!\n", count);
       printf("cluster throughput %.3f Mops\n", cluster_tp / 1000.0);

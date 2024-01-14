@@ -115,23 +115,15 @@ public:
   }
 } __attribute__((packed));
 
-
-#ifdef TEST_FINE_GRAINED_LOCK
 constexpr int kInternalCardinality =
-    (kInternalPageSize - sizeof(Header) - sizeof(uint8_t) * 2 - sizeof(uint64_t) - sizeof(uint8_t) * 3 - 1) / (sizeof(InternalEntry) + 8);
-
-constexpr int kLeafCardinality =
-    (kLeafPageSize - sizeof(Header) - sizeof(uint8_t) * 2 - sizeof(uint64_t) - sizeof(uint8_t) - 1) / (sizeof(LeafEntry) + 8);
-#else
-constexpr int kInternalCardinality =
-    (kInternalPageSize - sizeof(Header) - sizeof(uint8_t) * 2 - sizeof(uint64_t) - sizeof(uint8_t) * 3 - 1) / sizeof(InternalEntry);
+    (kInternalPageSize - sizeof(Header) - sizeof(uint8_t) * 2 - sizeof(uint64_t) - sizeof(uint8_t) * 3 - 1) /
+    sizeof(InternalEntry);
 
 constexpr int kLeafCardinality =
     (kLeafPageSize - sizeof(Header) - sizeof(uint8_t) * 2 - sizeof(uint64_t) - sizeof(uint8_t) - 1) / sizeof(LeafEntry);
-#endif
 
-static_assert(kInternalCardinality == internalSpanSize);
-static_assert(kLeafCardinality == leafSpanSize);
+static_assert(kInternalCardinality == spanSize);
+static_assert(kLeafCardinality == spanSize);
 
 class InternalPage {
   // private:
@@ -140,9 +132,7 @@ class InternalPage {
     uint64_t embedding_lock;
     uint64_t index_cache_freq;
   };
-#ifdef TEST_FINE_GRAINED_LOCK
-  uint64_t _padding[kInternalCardinality];
-#endif
+
   uint8_t front_version;
   Header hdr;
   InternalEntry records[kInternalCardinality];
@@ -156,7 +146,7 @@ class InternalPage {
 public:
   // this is called when tree grows
   InternalPage(GlobalAddress left, const Key &key, GlobalAddress right,
-               uint32_t level = 0) : hdr() {
+               uint32_t level = 0) {
     hdr.leftmost_ptr = left;
     hdr.level = level;
     records[0].key = key;
@@ -169,12 +159,9 @@ public:
     rear_version = 0;
 
     embedding_lock = 0;
-#ifdef TEST_FINE_GRAINED_LOCK
-    memset(_padding, 0, sizeof(uint64_t) * kInternalCardinality);
-#endif
   }
 
-  InternalPage(uint32_t level = 0) : hdr() {
+  InternalPage(uint32_t level = 0) {
     hdr.level = level;
     records[0].ptr = GlobalAddress::Null();
 
@@ -182,9 +169,6 @@ public:
     rear_version = 0;
 
     embedding_lock = 0;
-#ifdef TEST_FINE_GRAINED_LOCK
-    memset(_padding, 0, sizeof(uint64_t) * kInternalCardinality);
-#endif
   }
 
   void set_consistent() {
@@ -226,9 +210,6 @@ private:
     uint32_t crc;
     uint64_t embedding_lock;
   };
-#ifdef TEST_FINE_GRAINED_LOCK
-  uint64_t kv_locks[kLeafCardinality];
-#endif
   uint8_t front_version;
   Header hdr;
   LeafEntry records[kLeafCardinality];
@@ -239,18 +220,14 @@ private:
   friend class Tree;
 
 public:
-  LeafPage(uint32_t level = 0) : hdr() {
+  LeafPage(uint32_t level = 0) {
     hdr.level = level;
-    hdr.leftmost_ptr == GlobalAddress::Null();
     records[0].value = kValueNull;
 
     front_version = 0;
     rear_version = 0;
 
     embedding_lock = 0;
-#ifdef TEST_FINE_GRAINED_LOCK
-    memset(kv_locks, 0, sizeof(uint64_t) * kLeafCardinality);
-#endif
   }
 
   void set_consistent() {
@@ -306,7 +283,7 @@ public:
   using WorkFunc = std::function<void (Tree *, const Request&, CoroContext *, int)>;
   void run_coroutine(GenFunc gen_func, WorkFunc work_func, int coro_cnt, Request* req = nullptr, int req_num = 0);
 
-  void insert(const Key &k, const Value &v, CoroContext *cxt = nullptr, int coro_id = 0, bool is_load = false);
+  void insert(const Key &k, const Value &v, CoroContext *cxt = nullptr, int coro_id = 0);
   bool search(const Key &k, Value &v, CoroContext *cxt = nullptr, int coro_id = 0);
   void del(const Key &k, CoroContext *cxt = nullptr, int coro_id = 0);
 
@@ -369,8 +346,7 @@ private:
                           CoroContext *cxt, int coro_id);
 
   bool page_search(GlobalAddress page_addr, const Key &k, SearchResult &result,
-                   CoroContext *cxt, int coro_id, bool from_cache = false, TmpResult* t_res = nullptr,
-                   bool next_is_leaf = false, bool is_search = false);
+                   CoroContext *cxt, int coro_id, bool from_cache = false, TmpResult* t_res = nullptr);
   bool level_one_page_search(const Key &k, TmpResult* result,
                              CoroContext *cxt = nullptr, int coro_id = 0);
   void internal_page_search(InternalPage *page, const Key &k,
@@ -382,7 +358,7 @@ private:
                            CoroContext *cxt, int coro_id);
   bool leaf_page_store(GlobalAddress page_addr, const Key &k, const Value &v,
                        GlobalAddress root, int level, CoroContext *cxt,
-                       int coro_id, bool from_cache = false, bool is_load = false);
+                       int coro_id, bool from_cache = false);
   void leaf_page_del(GlobalAddress page_addr, const Key &k, int level,
                      CoroContext *cxt, int coro_id);
 

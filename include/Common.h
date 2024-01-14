@@ -33,7 +33,7 @@
   (char *)&((type *)(0))->field - (char *)((type *)(0))
 
 #define MAX_MACHINE 20
-#define MEMORY_NODE_NUM 1
+#define MEMORY_NODE_NUM 2
 #define CPU_PHYSICAL_CORE_NUM 8  // [CONFIG] 72
 #define MAX_KEY_SPACE_SIZE 60000000
 // #define KEY_SPACE_LIMIT
@@ -93,7 +93,7 @@ constexpr uint64_t GB = 1024ull * MB;
 constexpr uint16_t kCacheLineSize = 64;
 
 // for remote allocate
-constexpr uint64_t dsmSize    = 8;        // GB  [CONFIG] 64
+constexpr uint64_t dsmSize    = 16;        // GB  [CONFIG] 64
 constexpr uint64_t kChunkSize = 16 * MB;
 
 // for store root pointer
@@ -113,13 +113,13 @@ constexpr uint64_t kNumOfLock = kLockChipMemSize / sizeof(uint64_t);
 constexpr uint64_t kMaxLevelOfTree = 16;
 
 constexpr uint16_t kMaxCoro = MAX_CORO_NUM;
-constexpr uint64_t rdmaBufferSize    = 1;         // GB  [CONFIG] 4
+constexpr uint64_t rdmaBufferSize    = 4;         // GB  [CONFIG] 4
 constexpr int64_t kPerThreadRdmaBuf  = rdmaBufferSize * define::GB / MAX_APP_THREAD;
 constexpr int64_t kPerCoroRdmaBuf = kPerThreadRdmaBuf / kMaxCoro;
 
 constexpr uint8_t kMaxHandOverTime = 8;
 
-constexpr int kIndexCacheSize = 6000;
+constexpr int kIndexCacheSize = 600;
 
 // KV
 constexpr uint32_t keyLen = 8;
@@ -143,8 +143,7 @@ constexpr Value kValueNull = 0;
 constexpr Value kValueMin = 1;
 constexpr Value kValueMax = std::numeric_limits<Value>::max();
 // fixed
-constexpr int leafSpanSize = 128;
-constexpr int internalSpanSize = 32;
+constexpr int spanSize = 32;
 
 
 // calculate kInternalPageSize and kLeafPageSize
@@ -166,29 +165,12 @@ constexpr int find_len_idx(uint32_t len) {
         );
 }
 constexpr int idx_1 = find_len_idx(define::keyLen);
-// constexpr int idx_2 = find_len_idx(define::simulatedValLen);
-// static_assert(idx_2 >= 0);
 
 constexpr uint32_t headerSizes[8]        = {35, 51, 83, 147, 275, 531, 1043, 2067}; // keyLen: 8~1024
 constexpr uint32_t internalEntrySizes[8] = {16, 24, 40, 72 , 136, 264, 520, 1032};  // keyLen: 8~1024
-// constexpr uint32_t leafEntrySizes[8][8]  = {{18, 26, 42, 74, 138, 266, 522, 1034},  // keyLen=8 valLen=8~1024  
-//                                             {26},  // keyLen=16 valLen=8~1024
-//                                             {42, 50, 66, 98, 162, 290, 546, 1058},  // keyLen=32 valLen=8~1024
-//                                             {74},  // keyLen=64 valLen=8~1024
-//                                             {138},  // keyLen=128 valLen=8~1024
-//                                             {266}, // keyLen=256 valLen=8~1024
-//                                             {522},
-//                                             {1034}};
 
-#ifdef TEST_FINE_GRAINED_LOCK
-constexpr uint32_t kInternalPageSize = internalSpanSize * (internalEntrySizes[idx_1] + 8)    + headerSizes[idx_1] + 14;
-// constexpr uint32_t kLeafPageSize     = leafSpanSize * (leafEntrySizes[idx_1][idx_2] + 8) + headerSizes[idx_1] + 12;
-constexpr uint32_t kLeafPageSize     = leafSpanSize * (define::keyLen + define::simulatedValLen + 2 + 8) + headerSizes[idx_1] + 12;
-#else
-constexpr uint32_t kInternalPageSize = internalSpanSize * internalEntrySizes[idx_1]    + headerSizes[idx_1] + 14;
-// constexpr uint32_t kLeafPageSize     = leafSpanSize * leafEntrySizes[idx_1][idx_2] + headerSizes[idx_1] + 12;
-constexpr uint32_t kLeafPageSize     = leafSpanSize * (define::keyLen + define::simulatedValLen + 2) + headerSizes[idx_1] + 12;
-#endif
+constexpr uint32_t kInternalPageSize = spanSize * internalEntrySizes[idx_1]    + headerSizes[idx_1] + 14;
+constexpr uint32_t kLeafPageSize     = spanSize * (define::keyLen + define::simulatedValLen + 2) + headerSizes[idx_1] + 12;
 
 __inline__ unsigned long long rdtsc(void) {
   unsigned hi, lo;
