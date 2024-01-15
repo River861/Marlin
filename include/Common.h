@@ -147,30 +147,11 @@ constexpr int spanSize = 32;
 
 
 // calculate kInternalPageSize and kLeafPageSize
-constexpr int find_len_idx(uint32_t len) {
-  return len == 8 ? 0 : (
-          len == 16 ? 1 : (
-            len == 32 ? 2 : (
-              len == 64 ? 3 : (
-                len == 128 ? 4 : (
-                  len == 256 ? 5 : (
-                    len == 512 ? 6 : (
-                      len == 1024 ? 7 : -1
-                    )
-                  )
-                )
-              )
-            )
-          )
-        );
-}
-constexpr int idx_1 = find_len_idx(define::keyLen);
+constexpr uint32_t headerSize        = define::keyLen * 2 + 19;
+constexpr uint32_t internalEntrySize = define::keyLen + 8;
 
-constexpr uint32_t headerSizes[8]        = {35, 51, 83, 147, 275, 531, 1043, 2067}; // keyLen: 8~1024
-constexpr uint32_t internalEntrySizes[8] = {16, 24, 40, 72 , 136, 264, 520, 1032};  // keyLen: 8~1024
-
-constexpr uint32_t kInternalPageSize = spanSize * internalEntrySizes[idx_1]    + headerSizes[idx_1] + 14;
-constexpr uint32_t kLeafPageSize     = spanSize * (define::keyLen + define::simulatedValLen + 2) + headerSizes[idx_1] + 12;
+constexpr uint32_t kInternalPageSize = spanSize * internalEntrySize + headerSize + 14;
+constexpr uint32_t kLeafPageSize     = spanSize * (define::keyLen + define::simulatedValLen + 2) + headerSize + 12;
 
 __inline__ unsigned long long rdtsc(void) {
   unsigned hi, lo;
