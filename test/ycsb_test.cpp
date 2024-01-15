@@ -34,7 +34,7 @@
 #define USE_CORO
 #define EPOCH_LAT_TEST
 // #define NO_WRITE_CONFLICT  // NO_WRITE_CONFLICT only support int workloads
-#define LOADER_NUM 4 // [CONFIG] 8
+#define LOADER_NUM 8 // [CONFIG] 8
 
 extern uint64_t cache_miss[MAX_APP_THREAD];
 extern uint64_t cache_hit[MAX_APP_THREAD];
