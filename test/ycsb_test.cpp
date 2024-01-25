@@ -34,7 +34,7 @@
 #define USE_CORO
 #define EPOCH_LAT_TEST
 // #define NO_WRITE_CONFLICT  // NO_WRITE_CONFLICT only support int workloads
-#define LOADER_NUM 8 // [CONFIG] 8
+#define LOADER_NUM 4 // [CONFIG] 8
 
 extern uint64_t cache_miss[MAX_APP_THREAD];
 extern uint64_t cache_hit[MAX_APP_THREAD];
@@ -331,8 +331,8 @@ void parse_args(int argc, char *argv[]) {
   kCoroCnt = atoi(argv[3]);
   kIsStr = (std::string(argv[4]) == "email");
   kIsScan = (std::string(argv[5]) == "e");
-  ycsb_load_path = "../../SMART/ycsb/workloads/load_" + std::string(argv[4]) + "_workload" + std::string(argv[5]);
-  ycsb_trans_path = "../../SMART/ycsb/workloads/txn_" + std::string(argv[4]) + "_workload" + std::string(argv[5]);
+  ycsb_load_path = "../../COMBO/ycsb/workloads/load_" + std::string(argv[4]) + "_workload" + std::string(argv[5]);
+  ycsb_trans_path = "../../COMBO/ycsb/workloads/txn_" + std::string(argv[4]) + "_workload" + std::string(argv[5]);
   if (argc == 7) fix_range_size = atoi(argv[6]);
 
   printf("kNodeCount %d, kThreadCount %d, kCoroCnt %d\n", kNodeCount, kThreadCount, kCoroCnt);
