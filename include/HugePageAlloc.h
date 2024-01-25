@@ -6,15 +6,11 @@
 
 #include <sys/mman.h>
 #include <memory.h>
-#include <numa.h>
-#include <numaif.h>
-
-#define NUMA_NODE 0   // [CONFIG] 1   (check from numastat)
 
 
 char *getIP();
 inline void *hugePageAlloc(size_t size) {
-    numa_set_preferred(NUMA_NODE);
+
     void *res = mmap(NULL, size, PROT_READ | PROT_WRITE,
                      MAP_PRIVATE | MAP_ANONYMOUS | MAP_HUGETLB, -1, 0);
     if (res == MAP_FAILED) {
