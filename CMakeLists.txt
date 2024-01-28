@@ -4,7 +4,7 @@ project(Sherman)
 #Compiler options
 # set(CMAKE_C_FLAGS "-Wall -Wno-deprecated-declarations -Wsign-compare -g")  # -DNDEBUG
 set(CMAKE_C_FLAGS "-Wall -Wno-deprecated-declarations -Wno-unused-variable -Wno-unused-but-set-variable -Wsign-compare -O3 -g")
-set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c++11 ")
+set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c++17")
 
 # Link Options
 set(LINKS_FLAGS "-lnuma -lcityhash -lboost_system -lboost_coroutine -lpthread -libverbs -lmemcached -ltbb")
