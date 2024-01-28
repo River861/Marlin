@@ -49,7 +49,7 @@ thread_local std::priority_queue<CoroDeadline> deadline_queue;
 Tree::Tree(DSM *dsm, uint16_t tree_id) : dsm(dsm), tree_id(tree_id) {
 
   for (int i = 0; i < dsm->getClusterSize(); ++i) {
-    local_locks[i] = new LocalLockNode[define::kNumOfLock];
+    local_locks[i] = new HOCLNode[define::kNumOfLock];
     for (size_t k = 0; k < define::kNumOfLock; ++k) {
       auto &n = local_locks[i][k];
       n.ticket_lock.store(0);

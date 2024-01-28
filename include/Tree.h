@@ -13,7 +13,7 @@
 
 class IndexCache;
 
-struct LocalLockNode {
+struct HOCLNode {
   std::atomic<uint64_t> ticket_lock;
   bool hand_over;
   uint8_t hand_time;
@@ -313,7 +313,7 @@ private:
   static thread_local std::vector<GlobalAddress> scan_leaves[define::kMaxCoro];
   static thread_local TmpResult tmp_results[define::kMaxCoro];
 
-  LocalLockNode *local_locks[MAX_MACHINE];
+  HOCLNode *local_locks[MAX_MACHINE];
 
   IndexCache *index_cache;
 
