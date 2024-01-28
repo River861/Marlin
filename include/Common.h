@@ -34,8 +34,8 @@
 #define LATENCY_WINDOWS 100000
 #define ALLOC_ALLIGN_BIT 8
 
-#define STRUCT_OFFSET(type, field)                                             \
-  (char *)&((type *)(0))->field - (char *)((type *)(0))
+#define STRUCT_OFFSET(type, field)  (char *)&((type *)(0))->field - (char *)((type *)(0))
+#define UNUSED(x) (void)(x)
 
 #define MAX_MACHINE 20
 #define MEMORY_NODE_NUM 1
