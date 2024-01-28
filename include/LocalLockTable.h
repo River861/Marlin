@@ -3,8 +3,6 @@
 
 #include "Common.h"
 #include "Key.h"
-#include "LeafNode.h"
-#include "InternalNode.h"
 #include "GlobalAddress.h"
 #include "Hash.h"
 
@@ -71,32 +69,32 @@ public:
   LocalLockTable() {}
 
   // read-delegation
-  std::pair<bool, bool> acquire_local_read_lock(const Key& k, CoroQueue *waiting_queue = nullptr, CoroPull* sink = nullptr);
+  std::pair<bool, bool> acquire_local_read_lock(const Key& k, CoroQueue *waiting_queue = nullptr, CoroContext *ctx = nullptr);
   void release_local_read_lock(const Key& k, std::pair<bool, bool> acquire_ret, bool& res, Value& ret_value);
 
   // write-combining
-  std::pair<bool, bool> acquire_local_write_lock(const Key& k, const Value& v, CoroQueue *waiting_queue = nullptr, CoroPull* sink = nullptr);
+  std::pair<bool, bool> acquire_local_write_lock(const Key& k, const Value& v, CoroQueue *waiting_queue = nullptr, CoroContext *ctx = nullptr);
   bool get_combining_value(const Key& k, Value& v);
   void release_local_write_lock(const Key& k, std::pair<bool, bool> acquire_ret);
 
   /* ---- baseline ---- */
   // lock-handover
-  bool acquire_local_lock(const GlobalAddress& addr, CoroQueue *waiting_queue = nullptr, CoroPull* sink = nullptr);
+  bool acquire_local_lock(const GlobalAddress& addr, CoroQueue *waiting_queue = nullptr, CoroContext *ctx = nullptr);
   using RemoteFunc = std::function<void (const GlobalAddress &)>;
   void release_local_lock(const GlobalAddress& addr, RemoteFunc unlock_func);
   void release_local_lock(const GlobalAddress& addr, RemoteFunc unlock_func, RemoteFunc write_without_unlock, RemoteFunc write_and_unlock);
 
   // cas-handover
-  bool acquire_local_lock(const Key& k, CoroQueue *waiting_queue = nullptr, CoroPull* sink = nullptr);
+  bool acquire_local_lock(const Key& k, CoroQueue *waiting_queue = nullptr, CoroContext *ctx = nullptr);
   void release_local_lock(const Key& k, bool& res, InternalEntry& ret_p);
 
   // write_testing
-  bool acquire_local_write_lock(const GlobalAddress& addr, const Value& v, CoroQueue *waiting_queue = nullptr, CoroPull* sink = nullptr);
+  bool acquire_local_write_lock(const GlobalAddress& addr, const Value& v, CoroQueue *waiting_queue = nullptr, CoroContext *ctx = nullptr);
   using RemoteWriteBackFunc = std::function<void (const Value&)>;
   void release_local_write_lock(const GlobalAddress& addr, RemoteFunc unlock_func, const Value& v, RemoteWriteBackFunc write_func);
 
   // read-testing
-  bool acquire_local_read_lock(const GlobalAddress& addr, CoroQueue *waiting_queue = nullptr, CoroPull* sink = nullptr);
+  bool acquire_local_read_lock(const GlobalAddress& addr, CoroQueue *waiting_queue = nullptr, CoroContext *ctx = nullptr);
   void release_local_read_lock(const GlobalAddress& addr, bool& res, Value& ret_value);
 
 private:
@@ -105,7 +103,7 @@ private:
 
 
 // read-delegation
-inline std::pair<bool, bool> LocalLockTable::acquire_local_read_lock(const Key& k, CoroQueue *waiting_queue, CoroPull* sink) {
+inline std::pair<bool, bool> LocalLockTable::acquire_local_read_lock(const Key& k, CoroQueue *waiting_queue, CoroContext *ctx) {
   auto &node = local_locks[get_hashed_local_lock_index(k)];
 
   Key* unique_key = nullptr;
@@ -122,9 +120,9 @@ inline std::pair<bool, bool> LocalLockTable::acquire_local_read_lock(const Key& 
   uint8_t current = node.read_current.load(std::memory_order_relaxed);
 
   while (ticket != current) { // lock failed
-    if (sink != nullptr) {
-      waiting_queue->push(sink->get());
-      (*sink)();
+    if (ctx != nullptr) {
+      waiting_queue->push(ctx->coro_id);
+      (*ctx->yield)(*ctx->master);
     }
     current = node.read_current.load(std::memory_order_relaxed);
   }
@@ -195,7 +193,7 @@ inline void LocalLockTable::release_local_read_lock(const Key& k, std::pair<bool
 }
 
 // write-combining
-inline std::pair<bool, bool> LocalLockTable::acquire_local_write_lock(const Key& k, const Value& v, CoroQueue *waiting_queue, CoroPull* sink) {
+inline std::pair<bool, bool> LocalLockTable::acquire_local_write_lock(const Key& k, const Value& v, CoroQueue *waiting_queue, CoroContext *ctx) {
   auto &node = local_locks[get_hashed_local_lock_index(k)];
 
   Key* unique_key = nullptr;
@@ -216,9 +214,9 @@ inline std::pair<bool, bool> LocalLockTable::acquire_local_write_lock(const Key&
   uint8_t current = node.write_current.load(std::memory_order_relaxed);
 
   while (ticket != current) { // lock failed
-    if (sink != nullptr) {
-      waiting_queue->push(sink->get());
-      (*sink)();
+    if (ctx != nullptr) {
+      waiting_queue->push(ctx->coro_id);
+      (*ctx->yield)(*ctx->master);
     }
     current = node.write_current.load(std::memory_order_relaxed);
   }
@@ -294,16 +292,16 @@ inline void LocalLockTable::release_local_write_lock(const Key& k, std::pair<boo
 }
 
 // lock-handover
-inline bool LocalLockTable::acquire_local_lock(const GlobalAddress& addr, CoroQueue *waiting_queue, CoroPull* sink) {
+inline bool LocalLockTable::acquire_local_lock(const GlobalAddress& addr, CoroQueue *waiting_queue, CoroContext *ctx) {
   auto &node = local_locks[get_hashed_local_lock_index(addr)];
 
   uint8_t ticket = node.write_ticket.fetch_add(1);
   uint8_t current = node.write_current.load(std::memory_order_relaxed);
 
   while (ticket != current) { // lock failed
-    if (sink != nullptr) {
-      waiting_queue->push(sink->get());
-      (*sink)();
+    if (ctx != nullptr) {
+      waiting_queue->push(ctx->coro_id);
+      (*ctx->yield)(*ctx->master);
     }
     current = node.write_current.load(std::memory_order_relaxed);
   }
@@ -381,16 +379,16 @@ inline void LocalLockTable::release_local_lock(const GlobalAddress& addr, Remote
 }
 
 // cas-handover
-inline bool LocalLockTable::acquire_local_lock(const Key& k, CoroQueue *waiting_queue, CoroPull* sink) {
+inline bool LocalLockTable::acquire_local_lock(const Key& k, CoroQueue *waiting_queue, CoroContext *ctx) {
   auto &node = local_locks[get_hashed_local_lock_index(k)];
 
   uint8_t ticket = node.write_ticket.fetch_add(1);
   uint8_t current = node.write_current.load(std::memory_order_relaxed);
 
   while (ticket != current) { // lock failed
-    if (sink != nullptr) {
-      waiting_queue->push(sink->get());
-      (*sink)();
+    if (ctx != nullptr) {
+      waiting_queue->push(ctx->coro_id);
+      (*ctx->yield)(*ctx->master);
     }
     current = node.write_current.load(std::memory_order_relaxed);
   }
@@ -439,7 +437,7 @@ inline void LocalLockTable::release_local_lock(const Key& k, bool& res, Internal
 }
 
 // write-testing
-inline bool LocalLockTable::acquire_local_write_lock(const GlobalAddress& addr, const Value& v, CoroQueue *waiting_queue, CoroPull* sink) {
+inline bool LocalLockTable::acquire_local_write_lock(const GlobalAddress& addr, const Value& v, CoroQueue *waiting_queue, CoroContext *ctx) {
   auto &node = local_locks[get_hashed_local_lock_index(addr)];
 
   node.wc_lock.lock();
@@ -450,9 +448,9 @@ inline bool LocalLockTable::acquire_local_write_lock(const GlobalAddress& addr, 
   uint8_t current = node.write_current.load(std::memory_order_relaxed);
 
   while (ticket != current) { // lock failed
-    if (sink != nullptr) {
-      waiting_queue->push(sink->get());
-      (*sink)();
+    if (ctx != nullptr) {
+      waiting_queue->push(ctx->coro_id);
+      (*ctx->yield)(*ctx->master);
     }
     current = node.write_current.load(std::memory_order_relaxed);
   }
@@ -490,16 +488,16 @@ inline void LocalLockTable::release_local_write_lock(const GlobalAddress& addr, 
 }
 
 // read-testing
-inline bool LocalLockTable::acquire_local_read_lock(const GlobalAddress& addr, CoroQueue *waiting_queue, CoroPull* sink) {
+inline bool LocalLockTable::acquire_local_read_lock(const GlobalAddress& addr, CoroQueue *waiting_queue, CoroContext *ctx) {
   auto &node = local_locks[get_hashed_local_lock_index(addr)];
 
   uint8_t ticket = node.read_ticket.fetch_add(1);
   uint8_t current = node.read_current.load(std::memory_order_relaxed);
 
   while (ticket != current) { // lock failed
-    if (sink != nullptr) {
-      waiting_queue->push(sink->get());
-      (*sink)();
+    if (ctx != nullptr) {
+      waiting_queue->push(ctx->coro_id);
+      (*ctx->yield)(*ctx->master);
     }
     current = node.read_current.load(std::memory_order_relaxed);
   }

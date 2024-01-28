@@ -1,21 +1,13 @@
 cmake_minimum_required(VERSION 3.10.2 FATAL_ERROR)
 project(Sherman)
 
-# set (CMAKE_C_COMPILER "/usr/local/openmpi/bin/mpicxx")
-# set (CMAKE_CXX_COMPILER ${CMAKE_C_COMPILER})
-
 #Compiler options
 # set(CMAKE_C_FLAGS "-Wall -Wno-deprecated-declarations -Wsign-compare -g")  # -DNDEBUG
 set(CMAKE_C_FLAGS "-Wall -Wno-deprecated-declarations -Wno-unused-variable -Wno-unused-but-set-variable -Wsign-compare -O3 -g")
 set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c++11 ")
 
 # Link Options
-set(LINKS_FLAGS "-lcityhash -lboost_system -lboost_coroutine -lpthread -libverbs -lmemcached -ltbb")
-
-# option (SANITIZE "Turn on sanitization" ON)
-# if (SANITIZE)
-    # set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
-# endif()
+set(LINKS_FLAGS "-lnuma -lcityhash -lboost_system -lboost_coroutine -lpthread -libverbs -lmemcached -ltbb")
 
 #Env Options
 option (STATIC_MN_IP "Use static MNs according the IPs of the nodes" OFF)
@@ -69,6 +61,23 @@ if(ON_CHIP)
 else()
     remove_definitions(-DCONFIG_ENABLE_LOCK_HANDOVER)
     add_definitions(-DCONFIG_ENABLE_EMBEDDING_LOCK)
+endif()
+
+#Tree Options
+option (READ_DELEGATION "+ Read delegation" OFF)
+option (WRITE_COMBINING "+ Write combining" OFF)
+if(READ_DELEGATION)
+    add_definitions(-DTREE_ENABLE_READ_DELEGATION)
+else()
+    remove_definitions(-DTREE_ENABLE_READ_DELEGATION)
+endif()
+
+if(WRITE_COMBINING)
+    add_definitions(-DCONFIG_ENABLE_LOCK_HANDOVER)
+    add_definitions(-DTREE_ENABLE_WRITE_COMBINING)
+else()
+    add_definitions(-DTREE_TEST_HOCL_HANDOVER)
+    remove_definitions(-DTREE_ENABLE_WRITE_COMBINING)
 endif()
 
 set(INCLUDE_BASE ${PROJECT_SOURCE_DIR}/include)

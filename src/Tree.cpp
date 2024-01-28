@@ -18,7 +18,6 @@ uint64_t cache_miss[MAX_APP_THREAD];
 uint64_t cache_hit[MAX_APP_THREAD];
 uint64_t lock_fail[MAX_APP_THREAD];
 uint64_t try_lock[MAX_APP_THREAD];
-uint64_t try_write_op[MAX_APP_THREAD];
 uint64_t read_retry[MAX_APP_THREAD];
 uint64_t try_read[MAX_APP_THREAD];
 uint64_t pattern[MAX_APP_THREAD][8];
@@ -44,7 +43,7 @@ struct CoroDeadline {
 };
 
 thread_local Timer timer;
-thread_local std::queue<uint16_t> hot_wait_queue;
+thread_local CoroQueue busy_waiting_queue;
 thread_local std::priority_queue<CoroDeadline> deadline_queue;
 
 Tree::Tree(DSM *dsm, uint16_t tree_id) : dsm(dsm), tree_id(tree_id) {
@@ -64,6 +63,7 @@ Tree::Tree(DSM *dsm, uint16_t tree_id) : dsm(dsm), tree_id(tree_id) {
 
   index_cache = new IndexCache(define::kIndexCacheSize, dsm);
 
+  local_lock_table = new LocalLockTable();
   root_ptr_ptr = get_root_ptr_ptr();
 
   // try to init tree and install root pointer
@@ -400,17 +400,30 @@ void Tree::insert(const Key &k, const Value &v, CoroContext *cxt, int coro_id) {
   assert(dsm->is_register());
 
   before_operation(cxt, coro_id);
-  try_write_op[dsm->getMyThreadID()]++;
 
+  // handover
+  bool write_handover = false;
+  std::pair<bool, bool> lock_res = std::make_pair(false, false);
+
+#ifdef TREE_ENABLE_WRITE_COMBINING
+  lock_res = local_lock_table->acquire_local_write_lock(k, v, &busy_waiting_queue, cxt);
+  write_handover = (lock_res.first && !lock_res.second);
+#else
+  UNUSED(lock_res);
+#endif
+  if (write_handover) {
+    goto insert_finish;
+  }
+
+  {
   if (enable_cache) {
     GlobalAddress cache_addr;
     auto entry = index_cache->search_from_cache(k, &cache_addr);
     if (entry) { // cache hit
       auto root = get_root_ptr(cxt, coro_id);
       if (leaf_page_store(cache_addr, k, v, root, 0, cxt, coro_id, true)) {
-
         cache_hit[dsm->getMyThreadID()]++;
-        return;
+        goto insert_finish;
       }
       // cache stale, from root,
       index_cache->invalidate(entry);
@@ -446,12 +459,35 @@ next:
   }
 
   leaf_page_store(p, k, v, root, 0, cxt, coro_id, false);
+  }
+
+insert_finish:
+#ifdef TREE_ENABLE_WRITE_COMBINING
+  local_lock_table->release_local_write_lock(k, lock_res);
+#endif
+  return;
 }
 
 
 bool Tree::search(const Key &k, Value &v, CoroContext *cxt, int coro_id) {
   assert(dsm->is_register());
 
+  // handover
+  bool search_res = false;
+  std::pair<bool, bool> lock_res = std::make_pair(false, false);
+  bool read_handover = false;
+
+#ifdef TREE_ENABLE_READ_DELEGATION
+  lock_res = local_lock_table->acquire_local_read_lock(k, &busy_waiting_queue, cxt);
+  read_handover = (lock_res.first && !lock_res.second);
+#else
+  UNUSED(lock_res);
+#endif
+  if (read_handover) {
+    goto search_finish;
+  }
+
+  {
   auto root = get_root_ptr(cxt, coro_id);
   SearchResult result;
 
@@ -461,18 +497,11 @@ bool Tree::search(const Key &k, Value &v, CoroContext *cxt, int coro_id) {
   const CacheEntry *entry = nullptr;
   if (enable_cache) {
     GlobalAddress cache_addr;
-    // uint64_t st, et, diff;
-    // st = rdtsc();
     entry = index_cache->search_from_cache(k, &cache_addr);
-    // et = rdtsc();
     if (entry) { // cache hit
       cache_hit[dsm->getMyThreadID()]++;
       from_cache = true;
       p = cache_addr;
-      // diff = et -st;
-      // cout_lock.lock();
-      // std::cout << "search_cache_lat=" << diff << std::endl;
-      // cout_lock.unlock();
     } else {
       cache_miss[dsm->getMyThreadID()]++;
     }
@@ -497,18 +526,26 @@ next:
   if (result.is_leaf) {
     if (result.val != kValueNull) { // find
       v = result.val;
-      return true;
+      search_res = true;
+      goto search_finish;
     }
     if (result.slibing != GlobalAddress::Null()) { // turn right
       p = result.slibing;
       goto next;
     }
-    return false; // not found
+    goto search_finish; // not found
   } else {        // internal
     p = result.slibing != GlobalAddress::Null() ? result.slibing
                                                 : result.next_level;
     goto next;
   }
+  }
+
+search_finish:
+#ifdef TREE_ENABLE_READ_DELEGATION
+  local_lock_table->release_local_read_lock(k, lock_res, search_res, v);  // handover the ret leaf addr
+#endif
+  return search_res;
 }
 
 bool Tree::level_one_page_search(const Key &k, TmpResult* t_res, CoroContext *cxt, int coro_id) {
@@ -1117,6 +1154,10 @@ bool Tree::leaf_page_store(GlobalAddress page_addr, const Key &k,
   }
   assert(k >= page->hdr.lowest);
 
+#ifdef TREE_ENABLE_WRITE_COMBINING
+  local_lock_table->get_combining_value(k, v);
+#endif
+
   int cnt = 0;
   int empty_index = -1;
   char *update_addr = nullptr;
@@ -1352,9 +1393,9 @@ void Tree::coro_master(CoroYield &yield, int coro_cnt) {
       yield(worker[next_coro_id]);
     }
 
-    if (!hot_wait_queue.empty()) {
-      next_coro_id = hot_wait_queue.front();
-      hot_wait_queue.pop();
+    if (!busy_waiting_queue.empty()) {
+      next_coro_id = busy_waiting_queue.front();
+      busy_waiting_queue.pop();
       yield(worker[next_coro_id]);
     }
 
@@ -1386,7 +1427,7 @@ inline bool Tree::acquire_local_lock(GlobalAddress lock_addr, CoroContext *cxt,
     is_local_locked = true;
 
     if (cxt != nullptr) {
-      hot_wait_queue.push(coro_id);
+      busy_waiting_queue.push(coro_id);
       (*cxt->yield)(*cxt->master);
     }
 
@@ -1450,7 +1491,6 @@ void Tree::clear_debug_info() {
   memset(cache_hit, 0, sizeof(uint64_t) * MAX_APP_THREAD);
   memset(lock_fail, 0, sizeof(uint64_t) * MAX_APP_THREAD);
   memset(try_lock, 0, sizeof(uint64_t) * MAX_APP_THREAD);
-  memset(try_write_op, 0, sizeof(uint64_t) * MAX_APP_THREAD);
   memset(read_retry, 0, sizeof(uint64_t) * MAX_APP_THREAD);
   memset(try_read, 0, sizeof(uint64_t) * MAX_APP_THREAD);
 }

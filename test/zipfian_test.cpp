@@ -21,7 +21,6 @@ extern uint64_t cache_miss[MAX_APP_THREAD];
 extern uint64_t cache_hit[MAX_APP_THREAD];
 extern uint64_t lock_fail[MAX_APP_THREAD];
 extern uint64_t try_lock[MAX_APP_THREAD];
-extern uint64_t try_write_op[MAX_APP_THREAD];
 extern uint64_t read_retry[MAX_APP_THREAD];
 extern uint64_t try_read[MAX_APP_THREAD];
 
@@ -319,11 +318,10 @@ int main(int argc, char *argv[]) {
       hit += cache_hit[i];
     }
 
-    uint64_t try_lock_cnt = 0, lock_fail_cnt = 0, try_write_op_cnt = 0;
+    uint64_t try_lock_cnt = 0, lock_fail_cnt = 0;
     for (int i = 0; i < MAX_APP_THREAD; ++i) {
       lock_fail_cnt += lock_fail[i];
       try_lock_cnt += try_lock[i];
-      try_write_op_cnt += try_write_op[i];
     }
 
     uint64_t try_read_cnt = 0, read_retry_cnt = 0;

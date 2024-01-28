@@ -4,6 +4,8 @@
 #include "DSM.h"
 #include "Common.h"
 #include "Key.h"
+#include "LocalLockTable.h"
+
 #include <atomic>
 #include <city.h>
 #include <functional>
@@ -302,6 +304,7 @@ private:
   DSM *dsm;
   uint64_t tree_id;
   GlobalAddress root_ptr_ptr; // the address which stores root pointer;
+  LocalLockTable *local_lock_table;
 
   // static thread_local int coro_id;
   static thread_local CoroCall worker[define::kMaxCoro];

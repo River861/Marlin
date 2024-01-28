@@ -26,6 +26,10 @@
 // #define TREE_ENABLE_CACHE
 // #define CONFIG_ENABLE_LOCK_HANDOVER
 
+// DEBUG-TREE
+#define TREE_ENABLE_READ_DELEGATION
+#define TREE_ENABLE_WRITE_COMBINING
+
 #define LATENCY_WINDOWS 100000
 #define ALLOC_ALLIGN_BIT 8
 
@@ -80,6 +84,8 @@ inline int bits_in(std::uint64_t u) {
 using CoroYield = boost::coroutines::symmetric_coroutine<void>::yield_type;
 using CoroCall = boost::coroutines::symmetric_coroutine<void>::call_type;
 
+using CoroQueue = std::queue<uint16_t>;
+
 struct CoroContext {
   CoroYield *yield;
   CoroCall *master;
@@ -103,6 +109,7 @@ static_assert(kRootPointerStoreOffest % sizeof(uint64_t) == 0, "XX");
 // lock on-chip memory
 constexpr uint64_t kLockStartAddr = 0;
 constexpr uint64_t kLockChipMemSize = ON_CHIP_SIZE * 1024;
+constexpr uint64_t kLocalLockNum    = 4 * MB;  // tune to an appropriate value (as small as possible without affect the performance)
 
 // number of locks
 // we do not use 16-bit locks, since 64-bit locks can provide enough concurrency.
