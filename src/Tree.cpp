@@ -158,7 +158,7 @@ bool Tree::update_new_root(GlobalAddress left, const Key &k,
 
   new_root->set_consistent();
   dsm->write_sync(page_buffer, new_root_addr, kInternalPageSize, cxt);
-  if (dsm->cas_sync(root_ptr_ptr, old_root, new_root_addr, cas_buffer, cxt)) {
+  if (dsm->cas_sync(root_ptr_ptr, old_root, new_root_addr.to_uint64(), cas_buffer, cxt)) {
     broadcast_new_root(new_root_addr, level);
     std::cout << "new root level " << level << " " << new_root_addr
               << std::endl;
@@ -315,14 +315,14 @@ void Tree::write_page_and_unlock(char *page_buffer, GlobalAddress page_addr,
 
   RdmaOpRegion rs[2];
   rs[0].source = (uint64_t)page_buffer;
-  rs[0].dest = page_addr;
+  rs[0].dest = page_addr.to_uint64();
   rs[0].size = page_size;
   rs[0].is_on_chip = false;
 
   auto cas_buf = dsm->get_rbuf(coro_id).get_cas_buffer();
   *cas_buf = 0;
   rs[1].source = (uint64_t)cas_buf;  // [DEBUG]
-  rs[1].dest = lock_addr;
+  rs[1].dest = lock_addr.to_uint64();
   rs[1].size = sizeof(uint64_t);
 
 #ifdef CONFIG_ENABLE_EMBEDDING_LOCK
@@ -1125,7 +1125,7 @@ bool Tree::leaf_page_store(GlobalAddress page_addr, const Key &k,
   if (!need_split) {
     assert(update_addr);
     write_page_and_unlock(
-        update_addr, GADD(page_addr, (update_addr - (char *)page)),
+        update_addr, page_addr + (update_addr - (char *)page),
         sizeof(LeafEntry), cas_buffer, lock_addr, tag, cxt, coro_id, false);
 
     return true;
