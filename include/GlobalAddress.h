@@ -20,10 +20,6 @@ union {
   GlobalAddress(uint64_t val) : val(val) {}
   GlobalAddress(const GlobalAddress& gaddr) : val(gaddr.val) {}
 
-  operator uint64_t() {
-    return val;
-  }
-
   uint64_t to_uint64() const {return val; }
 
   static GlobalAddress Null() {
