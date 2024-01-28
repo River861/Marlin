@@ -6,6 +6,7 @@
 #include "DSMKeeper.h"
 #include "Key.h"
 
+#include <map>
 #include <algorithm>
 #include <iostream>
 #include <fstream>
@@ -190,7 +191,6 @@ void DSM::write_batch(RdmaOpRegion *rs, int k, bool signal, CoroContext *ctx) {
 
   int node_id = -1;
   for (int i = 0; i < k; ++i) {
-
     GlobalAddress gaddr;
     gaddr.val = rs[i].dest;
     node_id = gaddr.nodeID;
@@ -211,6 +211,41 @@ void DSM::write_batch_sync(RdmaOpRegion *rs, int k, CoroContext *ctx) {
   if (ctx == nullptr) {
     ibv_wc wc;
     pollWithCQ(iCon->cq, 1, &wc);
+  }
+}
+
+void DSM::read_batch(RdmaOpRegion *rs, int k, bool signal, CoroContext *ctx) {
+  int node_id = -1;
+  for (int i = 0; i < k; ++i) {
+    GlobalAddress gaddr;
+    gaddr.val = rs[i].dest;
+    node_id = gaddr.nodeID;
+    fill_keys_dest(rs[i], gaddr, rs[i].is_on_chip);
+  }
+
+  if (ctx == nullptr) {
+    rdmaReadBatch(iCon->data[0][node_id], rs, k, signal);
+  } else {
+    rdmaReadBatch(iCon->data[0][node_id], rs, k, true, ctx->coro_id);
+    (*ctx->yield)(*ctx->master);
+  }
+}
+
+void DSM::read_batches_sync(const std::vector<RdmaOpRegion>& rs, CoroContext *ctx) {
+  std::map<uint64_t, std::vector<RdmaOpRegion> > each_rs;
+
+  for (const auto& r : rs) {
+    int node_id = GlobalAddress{r.dest}.nodeID;
+    each_rs[node_id].emplace_back(r);
+  }
+  for (auto& p : each_rs) {
+    auto& _rs = p.second;
+    read_batch(&_rs[0], (int)_rs.size(), true, ctx);
+  }
+
+  if (ctx == nullptr) {
+    ibv_wc wc;
+    pollWithCQ(iCon->cq, (int)each_rs.size(), &wc);
   }
 }
 

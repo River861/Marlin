@@ -9,6 +9,7 @@
 #include <queue>
 #include <utility>
 #include <vector>
+#include <map>
 // #include <mutex>
 
 // std::mutex cout_lock;
@@ -527,12 +528,21 @@ next:
     if (result.val != kValueNull) { // find
       v = result.val;
       search_res = true;
-      goto search_finish;
     }
-    if (result.slibing != GlobalAddress::Null()) { // turn right
+    else if (result.slibing != GlobalAddress::Null()) { // turn right
       p = result.slibing;
       goto next;
     }
+#ifdef ENABLE_VAR_SIZE_KV
+    if (search_res) {
+      // read the DataBlock
+      auto block_len = ((DataPointer *)&v)->data_len;
+      auto block_addr = ((DataPointer *)&v)->ptr;
+      auto block_buffer = (dsm->get_rbuf(coro_id)).get_block_buffer();
+      dsm->read_sync(block_buffer, (GlobalAddress)block_addr, block_len, cxt);
+      v = ((DataBlock*)block_buffer)->value;
+    }
+#endif
     goto search_finish; // not found
   } else {        // internal
     p = result.slibing != GlobalAddress::Null() ? result.slibing
@@ -574,129 +584,6 @@ next:
   }
 }
 
-
-/*
-  range query, DO NOT support corotine currently
-*/
-// void Tree::range_query(const Key &from, const Key &to, std::map<Key, Value> &ret) {
-
-//   const int kParaFetch = 16;
-//   thread_local std::vector<InternalPage> result;
-//   thread_local std::vector<GlobalAddress> leaves;
-//   thread_local TmpResult tmp_res;
-
-//   result.clear();
-//   leaves.clear();
-
-//   index_cache->search_range_from_cache(from, to, result);  // 读取被cache住的倒数第二层node
-//   cache_hit[dsm->getMyThreadID()] += result.size() * spanSize;
-//   int cnt = 0;
-//   auto tmp = from;
-//   while(tmp < to) cnt ++, tmp = tmp + 1;
-//   cache_miss[dsm->getMyThreadID()] += cnt - result.size() * spanSize;
-
-//   std::sort(result.begin(), result.end(), [](const InternalPage& a, const InternalPage& b){
-//     return std::make_pair(a.hdr.lowest, a.hdr.highest) < std::make_pair(b.hdr.lowest, b.hdr.highest);
-//   });
-
-//   // 如果没有一个被cache住就search一个from的那个page
-//   if (result.empty() || from < result[0].hdr.lowest) {
-//     if(level_one_page_search(from, &tmp_res, nullptr, 0)
-//        && tmp_res.level == 1)
-//       result.insert(result.begin(), tmp_res.tmp_page);
-//   }
-//   // 根据lowest和highest补充读取result
-//   for (auto iter = result.begin(); iter != result.end();) {
-//     auto pa_hdr = iter->hdr;
-//     if (++iter == result.end()) break;
-//     auto pb_hdr = iter->hdr;
-//     if (pa_hdr.highest < pb_hdr.lowest) {
-//       if (level_one_page_search(pa_hdr.highest, &tmp_res, nullptr, 0)
-//           && tmp_res.level == 1)
-//         iter = result.insert(iter, tmp_res.tmp_page);
-//     }
-//   }
-//   // 根据to补充slibing result
-//   while (!result.empty() && result.back().hdr.highest < to) {
-//     if (result.back().hdr.sibling_ptr == GlobalAddress::Null()) break;
-//     if (level_one_page_search(result.back().hdr.highest, &tmp_res, nullptr, 0)
-//         && tmp_res.level == 1)
-//       result.push_back(tmp_res.tmp_page);
-//     else break;
-//   }
-
-//   auto check_addr = [](const GlobalAddress& addr){  // TODO: fix corotine bug
-//     return addr.nodeID < 16 && addr.offset < 64ull * define::GB;
-//   };
-
-//   for (auto& page : result) {
-//     auto cnt = page.hdr.last_index + 1;
-//     auto addr = page.hdr.leftmost_ptr;
-
-//     // [from, to]
-//     // [lowest, page->records[0].key);
-//     bool no_fetch = from > page.records[0].key || to < page.hdr.lowest;
-//     if (!no_fetch && check_addr(addr)) {
-//       leaves.push_back(addr);
-//     }
-//     for (int i = 1; i < cnt; ++i) {
-//       no_fetch = from > page.records[i].key || to < page.records[i - 1].key;
-//       if (!no_fetch && check_addr(page.records[i - 1].ptr)) {
-//         leaves.push_back(page.records[i - 1].ptr);
-//       }
-//     }
-
-//     no_fetch = from > page.hdr.highest || to < page.records[cnt - 1].key;
-//     if (!no_fetch && check_addr(page.records[cnt - 1].ptr)) {
-//       leaves.push_back(page.records[cnt - 1].ptr);
-//     }
-//   }
-
-//   // printf("---- %d ----\n", leaves.size());
-//   // sleep(1);
-
-//   // 并发读取所有leaf pages
-//   int cq_cnt = 0;
-//   char *range_buffer = (dsm->get_rbuf(0)).get_range_buffer();
-
-//   for (size_t i = 0; i < leaves.size(); ++i) {
-//     if (i > 0 && i % kParaFetch == 0) {
-//       cq_cnt -= dsm->poll_rdma_cq(kParaFetch);
-//       // cq_cnt -= kParaFetch;
-//       for (int k = 0; k < kParaFetch; ++k) {
-//         auto page = (LeafPage *)(range_buffer + k * kLeafPageSize);
-//         for (int i = 0; i < kLeafCardinality; ++i) {
-//           auto &r = page->records[i];
-//           if (r.value != kValueNull && r.f_version == r.r_version) {
-//             if (r.key >= from && r.key <= to) {
-//               ret[r.key] = r.value;
-//             }
-//           }
-//         }
-//       }
-//     }
-//     dsm->read(range_buffer + kLeafPageSize * (i % kParaFetch), leaves[i],
-//               sizeof(LeafPage), true, nullptr);  // poll cq in this batch instead of at master corotine
-//     cq_cnt++;
-//   }
-
-//   // 从leaf pages中挑出范围内的kv
-//   if (cq_cnt != 0) {
-//     dsm->poll_rdma_cq(cq_cnt);
-//     for (int k = 0; k < cq_cnt; ++k) {
-//       auto page = (LeafPage *)(range_buffer + k * kLeafPageSize);
-//       for (int i = 0; i < kLeafCardinality; ++i) {
-//         auto &r = page->records[i];
-//         if (r.value != kValueNull && r.f_version == r.r_version) {
-//           if (r.key >= from && r.key <= to) {
-//             ret[r.key] = r.value;
-//           }
-//         }
-//       }
-//     }
-//   }
-//   return;
-// }
 
 uint64_t Tree::range_query(const Key &from, const Key &to, std::map<Key, Value> &ret,
                            CoroContext *cxt, int coro_id) {
@@ -790,6 +677,30 @@ uint64_t Tree::range_query(const Key &from, const Key &to, std::map<Key, Value> 
     }
   }
 
+#ifdef ENABLE_VAR_SIZE_KV
+  // read DataBlocks via doorbell batching
+  std::map<Key, Value> indirect_values;
+  std::vector<RdmaOpRegion> kv_rs;
+  int kv_cnt = 0;
+  for (const auto& [_, data_ptr] : ret) {
+    auto data_addr = ((DataPointer*)&data_ptr)->ptr;
+    auto data_len  = ((DataPointer*)&data_ptr)->data_len;
+    RdmaOpRegion r;
+    r.source     = (uint64_t)range_buffer + kv_cnt * define::dataBlockLen;
+    r.dest       = ((GlobalAddress)data_addr).to_uint64();
+    r.size       = data_len;
+    r.is_on_chip = false;
+    kv_rs.push_back(r);
+    kv_cnt ++;
+  }
+  dsm->read_batches_sync(kv_rs);
+  kv_cnt = 0;
+  for (auto& [_, v] : ret) {
+    auto data_block = (DataBlock*)(range_buffer + kv_cnt * define::dataBlockLen);
+    v = data_block->value;
+    kv_cnt ++;
+  }
+#endif
   return counter;
 }
 
@@ -1156,6 +1067,19 @@ bool Tree::leaf_page_store(GlobalAddress page_addr, const Key &k,
 
 #ifdef TREE_ENABLE_WRITE_COMBINING
   local_lock_table->get_combining_value(k, v);
+#endif
+
+
+#ifdef ENABLE_VAR_SIZE_KV
+  {
+  // first write a new DataBlock out-of-place
+  auto block_buffer = (dsm->get_rbuf(coro_id)).get_block_buffer();
+  auto data_block = new (block_buffer) DataBlock(v);
+  auto block_addr = dsm->alloc(define::dataBlockLen);
+  dsm->write_sync(block_buffer, block_addr, define::dataBlockLen, cxt);
+  // change value into the DataPointer value pointing to the DataBlock
+  v = (uint64_t)DataPointer(define::dataBlockLen, block_addr);
+  }
 #endif
 
   int cnt = 0;

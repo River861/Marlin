@@ -21,7 +21,7 @@ public:
   GlobalAddress malloc(size_t size, bool &need_chunck, bool align = true) {
 
     if (align) {
-      size = ROUND_UP(size, ALLOC_ALLIGN_BIT);  // [DEBUG]
+      size = ROUND_UP(size, PACKED_ADDR_ALIGN_BIT);  // [DEBUG]
     }
 
     GlobalAddress res = cur;

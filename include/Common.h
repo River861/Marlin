@@ -27,13 +27,14 @@
 // #define TREE_ENABLE_CACHE
 // #define CONFIG_ENABLE_LOCK_HANDOVER
 
+// DEBUG-VL(variable-length)
+#define ENABLE_VAR_SIZE_KV
 // DEBUG-TREE
-// #define TREE_ENABLE_READ_DELEGATION
-// #define TREE_ENABLE_WRITE_COMBINING
+#define TREE_ENABLE_READ_DELEGATION
+#define TREE_ENABLE_WRITE_COMBINING
 
 #define LATENCY_WINDOWS 100000
-#define ALLOC_ALLIGN_BIT 8
-
+#define PACKED_ADDR_ALIGN_BIT 8
 #define STRUCT_OFFSET(type, field)  (char *)&((type *)(0))->field - (char *)((type *)(0))
 #define UNUSED(x) (void)(x)
 
@@ -107,6 +108,12 @@ constexpr uint64_t kChunkSize = 16 * MB;
 constexpr uint64_t kRootPointerStoreOffest = kChunkSize / 2;
 static_assert(kRootPointerStoreOffest % sizeof(uint64_t) == 0, "XX");
 
+// Packed GlobalAddress
+constexpr uint32_t mnIdBit         = 8;
+constexpr uint32_t offsetBit       = 48 - PACKED_ADDR_ALIGN_BIT;
+constexpr uint32_t packedGaddrBit  = mnIdBit + offsetBit;
+constexpr uint32_t packedGAddrSize = ROUND_UP(mnIdBit + offsetBit, 3) / 8;
+
 // lock on-chip memory
 constexpr uint64_t kLockStartAddr = 0;
 constexpr uint64_t kLockChipMemSize = ON_CHIP_SIZE * 1024;
@@ -132,6 +139,13 @@ constexpr int kIndexCacheSize = 600;
 // KV
 constexpr uint32_t keyLen = 8;
 constexpr uint32_t simulatedValLen = 8;
+#ifndef ENABLE_VAR_SIZE_KV
+constexpr uint32_t inlineValLen = simulatedValLen;
+#else
+constexpr uint32_t inlineValLen = 8;
+constexpr uint32_t indirectValLen = simulatedValLen;
+constexpr uint32_t dataBlockLen = sizeof(uint64_t) * 2 + 0 + simulatedValLen;
+#endif
 } // namespace define
 
 static inline unsigned long long asm_rdtsc(void) {
@@ -159,7 +173,13 @@ constexpr uint32_t headerSize        = define::keyLen * 2 + 19;
 constexpr uint32_t internalEntrySize = define::keyLen + 8;
 
 constexpr uint32_t kInternalPageSize = spanSize * internalEntrySize + headerSize + 14;
-constexpr uint32_t kLeafPageSize     = spanSize * (define::keyLen + define::simulatedValLen + 2) + headerSize + 12;
+constexpr uint32_t kLeafPageSize     = spanSize * (define::keyLen + define::inlineValLen + 2) + headerSize + 12;
+
+#ifdef ENABLE_VAR_SIZE_KV
+constexpr uint32_t kBufferBlockSize  = define::dataBlockLen;
+#else
+constexpr uint32_t kBufferBlockSize  = 0;
+#endif
 
 __inline__ unsigned long long rdtsc(void) {
   unsigned hi, lo;

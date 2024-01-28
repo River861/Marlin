@@ -29,8 +29,8 @@
 
 
 constexpr int kQPMaxDepth = 4096;
+constexpr int kInlineDataMax = 220;
 
-constexpr int kOroMax = 3;
 struct RdmaOpRegion {
   uint64_t source;
   uint64_t dest;
@@ -77,14 +77,14 @@ ibv_mr *createMemoryRegionOnChip(uint64_t mm, uint64_t mmSize,
 
 bool createQueuePair(ibv_qp **qp, ibv_qp_type mode, ibv_cq *cq,
                      RdmaContext *context, uint32_t qpsMaxDepth = kQPMaxDepth,
-                     uint32_t maxInlineData = 0);
+                     uint32_t maxInlineData = kInlineDataMax);
 
 bool createQueuePair(ibv_qp **qp, ibv_qp_type mode, ibv_cq *send_cq,
                      ibv_cq *recv_cq, RdmaContext *context,
-                     uint32_t qpsMaxDepth = kQPMaxDepth, uint32_t maxInlineData = 0);
+                     uint32_t qpsMaxDepth = kQPMaxDepth, uint32_t maxInlineData = kInlineDataMax);
 
 bool createDCTarget(ibv_exp_dct **dct, ibv_cq *cq, RdmaContext *context,
-                    uint32_t qpsMaxDepth = kQPMaxDepth, uint32_t maxInlineData = 0);
+                    uint32_t qpsMaxDepth = kQPMaxDepth, uint32_t maxInlineData = kInlineDataMax);
 void fillAhAttr(ibv_ah_attr *attr, uint32_t remoteLid, uint8_t *remoteGid,
                 RdmaContext *context);
 
@@ -142,6 +142,8 @@ void checkDMSupported(struct ibv_context *ctx);
 
 //// specified
 bool rdmaWriteBatch(ibv_qp *qp, RdmaOpRegion *ror, int k, bool isSignaled,
+                    uint64_t wrID = 0);
+bool rdmaReadBatch(ibv_qp *qp, RdmaOpRegion *ror, int k, bool isSignaled,
                     uint64_t wrID = 0);
 bool rdmaCasRead(ibv_qp *qp, const RdmaOpRegion &cas_ror,
                  const RdmaOpRegion &read_ror, uint64_t compare, uint64_t swap,

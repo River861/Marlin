@@ -8,8 +8,9 @@ class RdmaBuffer {
 
 private:
   static const int kPageBufferCnt = 128;    // async, buffer safty  [DEBUG] 64
-  static const int kSiblingBufferCnt = 16; // async, buffer safty
+  static const int kSiblingBufferCnt = 16;  // async, buffer safty
   static const int kCasBufferCnt = 128;     // async, buffer safty  [DEBUG] 16
+  static const int kBlockBufferCnt  = 32;
 
   char *buffer;
 
@@ -18,11 +19,13 @@ private:
   uint64_t *zero_64bit;
   char *page_buffer;
   char *sibling_buffer;
+  char *block_buffer;
   char *range_buffer;
 
   int page_buffer_cur;
   int sibling_buffer_cur;
   int cas_buffer_cur;
+  int block_buffer_cur;
 
   int kPageSize;
 
@@ -49,8 +52,9 @@ public:
     zero_64bit = (uint64_t *)((char *)unlock_buffer + sizeof(uint64_t));
     page_buffer = (char *)zero_64bit + sizeof(uint64_t);
     sibling_buffer = (char *)page_buffer + kPageSize * kPageBufferCnt;
-    range_buffer = (char *)sibling_buffer + kPageSize * kSiblingBufferCnt;
-    char * border = (char*) range_buffer + kPageSize * 16;
+    block_buffer = (char *)sibling_buffer + kPageSize * kSiblingBufferCnt;
+    range_buffer = (char *)block_buffer + kBufferBlockSize * kBlockBufferCnt;
+    char * border = (char*)range_buffer + kPageSize * 16;
     *zero_64bit = 0;
 
     assert((char *)border - buffer < define::kPerCoroRdmaBuf);
@@ -69,6 +73,13 @@ public:
     page_buffer_cur = (page_buffer_cur + 1) % kPageBufferCnt;
     return page_buffer + (page_buffer_cur * kPageSize);
   }
+
+#ifdef ENABLE_VAR_SIZE_KV
+  char *get_block_buffer() {
+    block_buffer_cur = (block_buffer_cur + 1) % kBlockBufferCnt;
+    return block_buffer + block_buffer_cur * kBufferBlockSize;
+  }
+#endif
 
   char *get_range_buffer() {
     return range_buffer;

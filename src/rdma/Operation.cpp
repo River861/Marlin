@@ -214,6 +214,9 @@ bool rdmaWrite(ibv_qp *qp, uint64_t source, uint64_t dest, uint64_t size,
   if (isSignaled) {
     wr.send_flags = IBV_SEND_SIGNALED;
   }
+  if (size <= kInlineDataMax) {  // Optimization: write inline for small node/leaf
+    wr.send_flags |= IBV_SEND_INLINE;
+  }
 
   wr.wr.rdma.remote_addr = dest;
   wr.wr.rdma.rkey = remoteRKey;
@@ -348,11 +351,41 @@ bool rdmaCompareAndSwapMask(ibv_qp *qp, uint64_t source, uint64_t dest,
 }
 
 
+bool rdmaReadBatch(ibv_qp *qp, RdmaOpRegion *ror, int k, bool isSignaled,
+                   uint64_t wrID) {
+  std::vector<ibv_sge> sg(k);
+  std::vector<ibv_send_wr> wr(k);
+  struct ibv_send_wr *wrBad;
+
+  for (int i = 0; i < k; ++i) {
+    fillSgeWr(sg[i], wr[i], ror[i].source, ror[i].size, ror[i].lkey);
+
+    wr[i].next = (i == k - 1) ? NULL : &wr[i + 1];
+
+    wr[i].opcode = IBV_WR_RDMA_READ;
+
+    if (i == k - 1 && isSignaled) {
+      wr[i].send_flags = IBV_SEND_SIGNALED;
+    }
+
+    wr[i].wr.rdma.remote_addr = ror[i].dest;
+    wr[i].wr.rdma.rkey = ror[i].remoteRKey;
+    wr[i].wr_id = wrID;
+  }
+
+  if (ibv_post_send(qp, &wr[0], &wrBad) != 0) {
+    Debug::notifyError("Send with RDMA_READ(WITH_IMM) failed.");
+    sleep(10);
+    return false;
+  }
+  return true;
+}
+
+
 bool rdmaWriteBatch(ibv_qp *qp, RdmaOpRegion *ror, int k, bool isSignaled,
                     uint64_t wrID) {
-
-  struct ibv_sge sg[kOroMax];
-  struct ibv_send_wr wr[kOroMax];
+  std::vector<ibv_sge> sg(k);
+  std::vector<ibv_send_wr> wr(k);
   struct ibv_send_wr *wrBad;
 
   for (int i = 0; i < k; ++i) {
@@ -364,6 +397,9 @@ bool rdmaWriteBatch(ibv_qp *qp, RdmaOpRegion *ror, int k, bool isSignaled,
 
     if (i == k - 1 && isSignaled) {
       wr[i].send_flags = IBV_SEND_SIGNALED;
+    }
+    if (ror[i].size <= kInlineDataMax) {  // Optimization
+      wr[i].send_flags |= IBV_SEND_INLINE;
     }
 
     wr[i].wr.rdma.remote_addr = ror[i].dest;
