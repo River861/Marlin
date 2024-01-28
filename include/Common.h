@@ -38,7 +38,7 @@
   (char *)&((type *)(0))->field - (char *)((type *)(0))
 
 #define MAX_MACHINE 20
-#define MEMORY_NODE_NUM 2
+#define MEMORY_NODE_NUM 1
 #define CPU_PHYSICAL_CORE_NUM 72  // [CONFIG] 72
 #define MAX_KEY_SPACE_SIZE 60000000
 // #define KEY_SPACE_LIMIT
