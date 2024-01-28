@@ -34,7 +34,7 @@ int main() {
   // test update
   for (uint64_t i = TEST_NUM; i >= 1; --i) {
     // printf("updating %lu...\n", i);
-    tree->update(int2key(i), i * 3);
+    tree->insert(int2key(i), i * 3);
   }
   printf("update passed.\n");
 
