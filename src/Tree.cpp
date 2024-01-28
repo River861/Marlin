@@ -1093,7 +1093,7 @@ void Tree::internal_page_store(GlobalAddress page_addr, const Key &k,
 }
 
 bool Tree::leaf_page_store(GlobalAddress page_addr, const Key &k,
-                           const Value &v, GlobalAddress root, int level,
+                           Value v, GlobalAddress root, int level,
                            CoroContext *cxt, int coro_id, bool from_cache) {
 
   uint64_t lock_index =

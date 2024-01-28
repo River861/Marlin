@@ -15,6 +15,11 @@ union {
   uint64_t val;
 };
 
+  GlobalAddress() : val(0) {}
+  GlobalAddress(uint64_t nodeID, uint64_t offset) : nodeID(nodeID), offset(offset) {}
+  GlobalAddress(uint64_t val) : val(val) {}
+  GlobalAddress(const GlobalAddress& gaddr) : val(gaddr.val) {}
+
   operator uint64_t() {
     return val;
   }

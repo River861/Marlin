@@ -359,7 +359,7 @@ private:
   void internal_page_store(GlobalAddress page_addr, const Key &k,
                            GlobalAddress value, GlobalAddress root, int level,
                            CoroContext *cxt, int coro_id);
-  bool leaf_page_store(GlobalAddress page_addr, const Key &k, const Value &v,
+  bool leaf_page_store(GlobalAddress page_addr, const Key &k, Value v,
                        GlobalAddress root, int level, CoroContext *cxt,
                        int coro_id, bool from_cache = false);
   void leaf_page_del(GlobalAddress page_addr, const Key &k, int level,
