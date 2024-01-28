@@ -10,6 +10,7 @@
 #include <bitset>
 #include <limits>
 #include <string>
+#include <queue>
 
 #include "Debug.h"
 #include "HugePageAlloc.h"
