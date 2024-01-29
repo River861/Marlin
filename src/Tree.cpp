@@ -337,7 +337,9 @@ retry:
       if (ret == -SMO_X) return true;
     }
     else {
-      if (ret >= 1) return true;
+      // FUCK
+      // if (ret >= 1) return true;
+      if (ret >= 0) return true;
     }
   }
   printf("FUCK: is_SMO=%d from_IDU=%d ret=%d SMO_X=%d\n", (int)is_SMO, (int)from_IDU, ret, -SMO_X);
