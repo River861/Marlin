@@ -333,7 +333,10 @@ retry:
 #endif
     auto ret = *(int64_t *)buf;
     if (is_SMO) {
-      if (ret != -SMO_X) goto retry;
+      if (ret != -SMO_X) {
+        printf("FUCK\n");
+        goto retry;
+      }
     }
     else {
       if (ret < 0) goto retry;
