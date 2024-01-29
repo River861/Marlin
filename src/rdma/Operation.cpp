@@ -235,7 +235,7 @@ bool rdmaWrite(ibv_qp *qp, uint64_t source, uint64_t dest, uint64_t size,
 
 // RC & UC
 bool rdmaFetchAndAdd(ibv_qp *qp, uint64_t source, uint64_t dest, uint64_t add,
-                     uint32_t lkey, uint32_t remoteRKey, bool singal, uint64_t wr_id) {
+                     uint32_t lkey, uint32_t remoteRKey, bool isSignaled, uint64_t wr_id) {
   struct ibv_sge sg;
   struct ibv_send_wr wr;
   struct ibv_send_wr *wrBad;
