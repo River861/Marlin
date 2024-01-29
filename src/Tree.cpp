@@ -1320,7 +1320,7 @@ cas_retry:
   if (split_key <= page->hdr.lowest) {
     std::cout << "FUCK: split_key=" << key2int(split_key) << " lowest=" << key2int(page->hdr.lowest) << " cnt=" << cnt << std::endl;
     for (int i = 0; i < cnt; ++ i) {
-      std::cout << page->records[i].key;
+      std::cout << key2int(page->records[i].key);
     }
     std::cout << std::endl;
   }
