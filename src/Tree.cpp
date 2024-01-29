@@ -302,25 +302,22 @@ inline void Tree::unlock_addr(GlobalAddress lock_addr, uint64_t tag,
 
 #ifdef TREE_ENABLE_MARLIN
 inline bool Tree::try_spear_addr(GlobalAddress lock_addr, bool is_SMO,
-                                 uint64_t *buf, CoroContext *cxt, int coro_id, bool from_IDU) {
+                                 uint64_t *buf, CoroContext *cxt, int coro_id) {
   bool hand_over = acquire_local_lock(lock_addr, cxt, coro_id);
   if (hand_over) {
     return true;
   }
 
   try_lock[dsm->getMyThreadID()]++;
-  int64_t SMO_delta = from_IDU ? -SMO_X-1 : -SMO_X;
 #ifdef CONFIG_ENABLE_EMBEDDING_LOCK
-  dsm->faa_boundary_sync(lock_addr, is_SMO ? SMO_delta : 1, buf, 63ULL, cxt);
+  dsm->faa_boundary_sync(lock_addr, is_SMO ? -SMO_X : 1, buf, 63ULL, cxt);
 #else
-  dsm->faa_dm_boundary_sync(lock_addr, is_SMO ? SMO_delta : 1, buf, 63ULL, cxt);
+  dsm->faa_dm_boundary_sync(lock_addr, is_SMO ? -SMO_X : 1, buf, 63ULL, cxt);
 #endif
   auto ret = *(int64_t *)buf;
   if (is_SMO) {
     if (ret == 0) return true;
-    else if (ret < -SMO_T) {
-      return false;  // already locked by SMO
-    }
+    if (ret < -SMO_T) return false;  // already locked by SMO
   }
   else {
     if (ret >= 0) return true;
@@ -336,9 +333,7 @@ retry:
 #endif
     auto ret = *(int64_t *)buf;
     if (is_SMO) {
-      if (ret == -SMO_X) {
-        return true;
-      }
+      if (ret == -SMO_X) return true;
     }
     else {
       if (ret >= 1) return true;
@@ -349,24 +344,25 @@ retry:
 }
 
 inline void Tree::unspear_addr(GlobalAddress lock_addr, bool is_SMO, uint64_t *buf,
-                    CoroContext *cxt, int coro_id, bool async) {
+                    CoroContext *cxt, int coro_id, bool async, bool from_IDU) {
   bool hand_over_other = can_hand_over(lock_addr);
   if (hand_over_other) {
     releases_local_lock(lock_addr);
     return;
   }
 
+  int64_t SMO_delta = from_IDU ? SMO_X - 1 : SMO_X;
 #ifdef CONFIG_ENABLE_EMBEDDING_LOCK
   if (async) {
-    dsm->faa_boundary(lock_addr, is_SMO ? SMO_X : -1, buf, 63ULL, false, cxt);
+    dsm->faa_boundary(lock_addr, is_SMO ? SMO_delta : -1, buf, 63ULL, false, cxt);
   } else {
-    dsm->faa_boundary_sync(lock_addr, is_SMO ? SMO_X : -1, buf, 63ULL, cxt);
+    dsm->faa_boundary_sync(lock_addr, is_SMO ? SMO_delta : -1, buf, 63ULL, cxt);
   }
 #else
   if (async) {
-    dsm->faa_dm_boundary(lock_addr, is_SMO ? SMO_X : -1, buf, 63ULL, false, cxt);
+    dsm->faa_dm_boundary(lock_addr, is_SMO ? SMO_delta : -1, buf, 63ULL, false, cxt);
   } else {
-    dsm->faa_dm_boundary_sync(lock_addr, is_SMO ? SMO_X : -1, buf, 63ULL, cxt);
+    dsm->faa_dm_boundary_sync(lock_addr, is_SMO ? SMO_delta : -1, buf, 63ULL, cxt);
   }
 #endif
 
@@ -376,8 +372,8 @@ inline void Tree::unspear_addr(GlobalAddress lock_addr, bool is_SMO, uint64_t *b
 bool Tree::spear_and_read_page(char *page_buffer, GlobalAddress page_addr,
                                int page_size, uint64_t *cas_buffer,
                                GlobalAddress lock_addr, bool is_SMO,
-                               CoroContext *cxt, int coro_id, bool from_IDU) {
-  bool ret = try_spear_addr(lock_addr, is_SMO, cas_buffer, cxt, coro_id, from_IDU);
+                               CoroContext *cxt, int coro_id) {
+  bool ret = try_spear_addr(lock_addr, is_SMO, cas_buffer, cxt, coro_id);
   if (!ret) return false;
 
   dsm->read_sync(page_buffer, page_addr, page_size, cxt);
@@ -388,7 +384,7 @@ bool Tree::spear_and_read_page(char *page_buffer, GlobalAddress page_addr,
 void Tree::write_page_and_unspear(char *page_buffer, GlobalAddress page_addr,
                                   int page_size, uint64_t *cas_buffer,
                                   GlobalAddress lock_addr, bool is_SMO,
-                                  CoroContext *cxt, int coro_id, bool async) {
+                                  CoroContext *cxt, int coro_id, bool async, bool from_IDU) {
   bool hand_over_other = can_hand_over(lock_addr);
   if (hand_over_other) {
     dsm->write_sync(page_buffer, page_addr, page_size, cxt);
@@ -412,10 +408,11 @@ void Tree::write_page_and_unspear(char *page_buffer, GlobalAddress page_addr,
   rs[1].is_on_chip = true;
 #endif
 
+  int64_t SMO_delta = from_IDU ? SMO_X - 1 : SMO_X;
   if (async) {
-    dsm->write_faa(rs[0], rs[1], is_SMO ? SMO_X : -1, false, cxt);
+    dsm->write_faa(rs[0], rs[1], is_SMO ? SMO_delta : -1, false, cxt);
   } else {
-    dsm->write_faa_sync(rs[0], rs[1], is_SMO ? SMO_X : -1, cxt);
+    dsm->write_faa_sync(rs[0], rs[1], is_SMO ? SMO_delta : -1, cxt);
   }
 
   releases_local_lock(lock_addr);
@@ -1286,7 +1283,7 @@ cas_retry:
 #ifdef TREE_ENABLE_MARLIN
   if (!spear_and_read_page(page_buffer, page_addr, kLeafPageSize, cas_buffer, lock_addr, true, cxt, coro_id, true)) {
     // is spliting
-    unspear_addr(lock_addr, true, cas_buffer, cxt, coro_id, true);
+    unspear_addr(lock_addr, true, cas_buffer, cxt, coro_id, true, true);
     v = indirect_v;
     goto re_insert;
   }
@@ -1333,7 +1330,7 @@ cas_retry:
   page->set_consistent();
 
 #ifdef TREE_ENABLE_MARLIN
-  write_page_and_unspear(page_buffer, page_addr, kLeafPageSize, cas_buffer, lock_addr, true, cxt, coro_id, true);
+  write_page_and_unspear(page_buffer, page_addr, kLeafPageSize, cas_buffer, lock_addr, true, cxt, coro_id, true, true);
 #else
   write_page_and_unlock(page_buffer, page_addr, kLeafPageSize, cas_buffer, lock_addr, tag, cxt, coro_id, true);
 #endif
