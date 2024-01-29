@@ -1251,6 +1251,7 @@ re_insert:
 cas_retry:
     if (!dsm->cas_sync(ptr_addr, old_v, v, cas_buf, cxt)) {
       if (is_insert) {
+        unspear_addr(lock_addr, false, cas_buf, cxt, coro_id, true);
         v = indirect_v;
         goto re_insert;
       }
