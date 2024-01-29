@@ -27,11 +27,13 @@
 // #define TREE_ENABLE_CACHE
 // #define CONFIG_ENABLE_LOCK_HANDOVER
 
-// DEBUG-VL(variable-length)
-// #define ENABLE_VAR_SIZE_KV
 // DEBUG-TREE
 #define TREE_ENABLE_READ_DELEGATION
 #define TREE_ENABLE_WRITE_COMBINING
+
+// DEBUG-VL(variable-length)
+#define ENABLE_VAR_SIZE_KV
+#define TREE_ENABLE_MARLIN   // !!!NOTE: should be turned on together with ENABLE_VAR_SIZE_KV and RDWC
 
 #define LATENCY_WINDOWS 100000
 #define PACKED_ADDR_ALIGN_BIT 8
@@ -169,11 +171,17 @@ constexpr int spanSize = 32;
 
 
 // calculate kInternalPageSize and kLeafPageSize
+#ifdef TREE_ENABLE_MARLIN
+constexpr uint32_t headerSize        = define::keyLen * 2 + 19 + 4;
+constexpr uint32_t leafEntrySize = define::keyLen + define::inlineValLen;
+#else
 constexpr uint32_t headerSize        = define::keyLen * 2 + 19;
+constexpr uint32_t leafEntrySize = define::keyLen + define::inlineValLen + 2;
+#endif
 constexpr uint32_t internalEntrySize = define::keyLen + 8;
 
-constexpr uint32_t kInternalPageSize = spanSize * internalEntrySize + headerSize + 14;
-constexpr uint32_t kLeafPageSize     = spanSize * (define::keyLen + define::inlineValLen + 2) + headerSize + 12;
+constexpr uint32_t kInternalPageSize = spanSize * internalEntrySize + headerSize + 13;
+constexpr uint32_t kLeafPageSize     = spanSize * leafEntrySize + headerSize + 11;
 
 #ifdef ENABLE_VAR_SIZE_KV
 constexpr uint32_t kBufferBlockSize  = define::dataBlockLen;

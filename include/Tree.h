@@ -55,6 +55,9 @@ private:
   int16_t last_index;
   Key lowest;
   Key highest;
+#ifdef TREE_ENABLE_MARLIN
+  uint8_t align_padding[4];
+#endif
 
   friend class InternalPage;
   friend class LeafPage;
@@ -99,6 +102,13 @@ public:
 
 class LeafEntry {
 public:
+#ifdef TREE_ENABLE_MARLIN
+  Key key;
+  Value value;  // !!!NOTE: this field will be casted into a DataPointer
+
+  static uint8_t f_version : 4;  // useless
+  static uint8_t r_version : 4;  // useless
+#else
   uint8_t f_version : 4;
   union {
     Key key;
@@ -108,22 +118,23 @@ public:
     uint8_t _val_padding[define::inlineValLen];
   };
   uint8_t r_version : 4;
-
+#endif
   LeafEntry() {
+#ifndef TREE_ENABLE_MARLIN
     f_version = 0;
     r_version = 0;
+#endif
     value = kValueNull;
-    // key = 0;
     std::fill(key.begin(), key.end(), 0);
   }
 } __attribute__((packed));
 
 constexpr int kInternalCardinality =
-    (kInternalPageSize - sizeof(Header) - sizeof(uint8_t) * 2 - sizeof(uint64_t) - sizeof(uint8_t) * 3 - 1) /
+    (kInternalPageSize - sizeof(Header) - sizeof(uint8_t) * 2 - sizeof(uint64_t) - sizeof(uint8_t) * 3) /
     sizeof(InternalEntry);
 
 constexpr int kLeafCardinality =
-    (kLeafPageSize - sizeof(Header) - sizeof(uint8_t) * 2 - sizeof(uint64_t) - sizeof(uint8_t) - 1) / sizeof(LeafEntry);
+    (kLeafPageSize - sizeof(Header) - sizeof(uint8_t) * 2 - sizeof(uint64_t) - sizeof(uint8_t)) / sizeof(LeafEntry);
 
 static_assert(kInternalCardinality == spanSize);
 static_assert(kLeafCardinality == spanSize);
@@ -204,8 +215,8 @@ public:
     std::cout << "version: [" << (int)front_version << ", " << (int)rear_version
               << "]" << std::endl;
   }
-
 } __attribute__((packed));
+
 
 class LeafPage {
 private:
@@ -371,5 +382,9 @@ private:
   bool can_hand_over(GlobalAddress lock_addr);
   void releases_local_lock(GlobalAddress lock_addr);
 };
+
+#ifdef TREE_ENABLE_MARLIN
+static_assert(define::keyLen == 8);
+#endif
 
 #endif // _TREE_H_

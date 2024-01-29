@@ -1008,7 +1008,7 @@ bool Tree::leaf_page_store(GlobalAddress page_addr, const Key &k,
                            CoroContext *cxt, int coro_id, bool from_cache) {
 
   uint64_t lock_index =
-      CityHash64((char *)&page_addr, sizeof(page_addr)) % define::kNumOfLock;  // 可能是这里造成的死锁
+      CityHash64((char *)&page_addr, sizeof(page_addr)) % define::kNumOfLock;
 
   GlobalAddress lock_addr;
 
@@ -1085,14 +1085,16 @@ bool Tree::leaf_page_store(GlobalAddress page_addr, const Key &k,
   int cnt = 0;
   int empty_index = -1;
   char *update_addr = nullptr;
+  Value old_v = kValueNull;
   for (int i = 0; i < kLeafCardinality; ++i) {
 
     auto &r = page->records[i];
     if (r.value != kValueNull) {
       cnt++;
       if (r.key == k) {
+        old_v = r.value;
         r.value = v;
-        r.f_version++;
+        r.f_version ++;
         r.r_version = r.f_version;
         update_addr = (char *)&r;
         break;
@@ -1104,30 +1106,63 @@ bool Tree::leaf_page_store(GlobalAddress page_addr, const Key &k,
 
   assert(cnt != kLeafCardinality);
 
+  bool is_insert = false;
   if (update_addr == nullptr) { // insert new item
+    is_insert = true;
     if (empty_index == -1) {
       printf("%d cnt\n", cnt);
       assert(false);
     }
-
     auto &r = page->records[empty_index];
     r.key = k;
     r.value = v;
     r.f_version++;
     r.r_version = r.f_version;
-
     update_addr = (char *)&r;
-
     cnt++;
   }
 
   bool need_split = cnt == kLeafCardinality;
   if (!need_split) {
     assert(update_addr);
+#ifdef TREE_ENABLE_MARLIN
+    // modify value_pointer with CAS
+cas_retry:
+    if (!dsm->cas_sync(update_addr, old_v, v, cas_buffer, cxt)) {
+      old_v = *(Value *)cas_buffer;
+      goto cas_retry;
+    }
+    if (is_insert) { // write key and unlock
+      RdmaOpRegion rs[2];
+      rs[0].source = (uint64_t)update_addr;
+      rs[0].dest = (page_addr + (update_addr - (char *)page)).to_uint64();
+      rs[0].size = define::keyLen;
+      rs[0].is_on_chip = false;
+
+      auto cas_buf = dsm->get_rbuf(coro_id).get_cas_buffer();
+      *cas_buf = 0;
+      rs[1].source = (uint64_t)cas_buf;
+      rs[1].dest = lock_addr.to_uint64();
+      rs[1].size = sizeof(uint64_t);
+#ifdef CONFIG_ENABLE_EMBEDDING_LOCK
+      rs[1].is_on_chip = false;
+#else
+      rs[1].is_on_chip = true;
+#endif
+      dsm->write_batch_sync(rs, 2, cxt);
+    }
+    else {  // unlock
+      auto cas_buf = dsm->get_rbuf(coro_id).get_cas_buffer();
+      *cas_buf = 0;
+      dsm->write_sync((char*)cas_buf, lock_addr, sizeof(uint64_t), cxt);
+    }
+#else
+    UNUSED(old_v);
+    UNUSED(is_insert);
     write_page_and_unlock(
         update_addr, page_addr + (update_addr - (char *)page),
         sizeof(LeafEntry), cas_buffer, lock_addr, tag, cxt, coro_id, false);
-
+#endif
     return true;
   } else {
     std::sort(
