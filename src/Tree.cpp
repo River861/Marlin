@@ -1355,7 +1355,7 @@ cas_retry:
 #ifdef TREE_ENABLE_MARLIN
   // TODO: FENCE不管用？
   // write_page_and_unspear(page_buffer, page_addr, kLeafPageSize, cas_buffer, lock_addr, true, cxt, coro_id, true);
-  dsm->write_sync(page_buffer, page_addr, kLeafPageSize, cxt);
+  dsm->write_sync(page_buffer + sizeof(uint64_t), page_addr + sizeof(uint64_t), kLeafPageSize - sizeof(uint64_t), cxt);
   unspear_addr(lock_addr, true, cas_buffer, cxt, coro_id, true);
 #else
   write_page_and_unlock(page_buffer, page_addr, kLeafPageSize, cas_buffer, lock_addr, tag, cxt, coro_id, true);
