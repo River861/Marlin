@@ -1091,10 +1091,9 @@ bool Tree::leaf_page_store(GlobalAddress page_addr, const Key &k,
 
   int cnt = 0;
   int empty_index = -1;
-  char *update_addr = nullptr;
+  char *update_pos = nullptr;
   Value old_v = kValueNull;
   for (int i = 0; i < kLeafCardinality; ++i) {
-
     auto &r = page->records[i];
     if (r.value != kValueNull) {
       cnt++;
@@ -1105,7 +1104,7 @@ bool Tree::leaf_page_store(GlobalAddress page_addr, const Key &k,
         r.f_version ++;
         r.r_version = r.f_version;
 #endif
-        update_addr = (char *)&r;
+        update_pos = (char *)&r;
         break;
       }
     } else if (empty_index == -1) {
@@ -1116,7 +1115,7 @@ bool Tree::leaf_page_store(GlobalAddress page_addr, const Key &k,
   assert(cnt != kLeafCardinality);
 
   bool is_insert = false;
-  if (update_addr == nullptr) { // insert new item
+  if (update_pos == nullptr) { // insert new item
     is_insert = true;
     if (empty_index == -1) {
       printf("%d cnt\n", cnt);
@@ -1129,30 +1128,30 @@ bool Tree::leaf_page_store(GlobalAddress page_addr, const Key &k,
     r.f_version++;
     r.r_version = r.f_version;
 #endif
-    update_addr = (char *)&r;
+    update_pos = (char *)&r;
     cnt++;
   }
 
   bool need_split = cnt == kLeafCardinality;
   if (!need_split) {
-    assert(update_addr);
+    assert(update_pos);
 #ifdef TREE_ENABLE_MARLIN
     // modify value_pointer with CAS
-    auto key_addr = page_addr + (update_addr - (char *)page);
+    auto key_addr = page_addr + (update_pos - (char *)page);
     auto ptr_addr = key_addr + define::keyLen;
+    auto cas_buf = dsm->get_rbuf(coro_id).get_cas_buffer();
 cas_retry:
-    if (!dsm->cas_sync(ptr_addr, old_v, v, cas_buffer, cxt)) {
-      old_v = *(Value *)cas_buffer;
+    if (!dsm->cas_sync(ptr_addr, old_v, v, cas_buf, cxt)) {
+      old_v = *(Value *)cas_buf;
       goto cas_retry;
     }
     if (is_insert) { // write key and unlock
       RdmaOpRegion rs[2];
-      rs[0].source = (uint64_t)update_addr;
+      rs[0].source = (uint64_t)update_pos;
       rs[0].dest = key_addr.to_uint64();
       rs[0].size = define::keyLen;
       rs[0].is_on_chip = false;
 
-      auto cas_buf = dsm->get_rbuf(coro_id).get_cas_buffer();
       *cas_buf = 0;
       rs[1].source = (uint64_t)cas_buf;
       rs[1].dest = lock_addr.to_uint64();
@@ -1165,7 +1164,6 @@ cas_retry:
       dsm->write_batch_sync(rs, 2, cxt);
     }
     else {  // unlock
-      auto cas_buf = dsm->get_rbuf(coro_id).get_cas_buffer();
       *cas_buf = 0;
       dsm->write_sync((char*)cas_buf, lock_addr, sizeof(uint64_t), cxt);
     }
@@ -1173,7 +1171,7 @@ cas_retry:
     UNUSED(old_v);
     UNUSED(is_insert);
     write_page_and_unlock(
-        update_addr, page_addr + (update_addr - (char *)page),
+        update_pos, page_addr + (update_pos - (char *)page),
         sizeof(LeafEntry), cas_buffer, lock_addr, tag, cxt, coro_id, false);
 #endif
     return true;
