@@ -33,7 +33,7 @@
 
 // DEBUG-VL(variable-length)
 #define ENABLE_VAR_SIZE_KV
-// #define TREE_ENABLE_MARLIN   // !!!NOTE: should be turned on together with ENABLE_VAR_SIZE_KV and RDWC
+#define TREE_ENABLE_MARLIN   // !!!NOTE: should be turned on together with ENABLE_VAR_SIZE_KV and RDWC
 
 #define LATENCY_WINDOWS 100000
 #define PACKED_ADDR_ALIGN_BIT 8
@@ -172,8 +172,9 @@ constexpr int spanSize = 32;
 
 // calculate kInternalPageSize and kLeafPageSize
 #ifdef TREE_ENABLE_MARLIN
-constexpr uint32_t headerSize        = define::keyLen * 2 + 19 + 4;
+constexpr uint32_t headerSize    = define::keyLen * 2 + 19 + 4;
 constexpr uint32_t leafEntrySize = define::keyLen + define::inlineValLen;
+constexpr int64_t  SMO_X         = MAX_APP_THREAD + 1;
 #else
 constexpr uint32_t headerSize        = define::keyLen * 2 + 19;
 constexpr uint32_t leafEntrySize = define::keyLen + define::inlineValLen + 2;
