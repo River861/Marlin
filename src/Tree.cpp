@@ -309,7 +309,8 @@ inline bool Tree::try_spear_addr(GlobalAddress lock_addr, bool is_SMO,
   }
 
   try_lock[dsm->getMyThreadID()] ++;
-  int64_t SMO_delta = from_IDU ? (-SMO_X-1) : -SMO_X;
+  // int64_t SMO_delta = from_IDU ? (-SMO_X-1) : -SMO_X;
+  int64_t SMO_delta = -SMO_X;
 #ifdef CONFIG_ENABLE_EMBEDDING_LOCK
   dsm->faa_boundary_sync(lock_addr, is_SMO ? SMO_delta : 1, buf, 63ULL, cxt);
 #else
@@ -340,7 +341,7 @@ retry:
       if (ret >= 1) return true;
     }
   }
-  if(!is_SMO) printf("FUCK: is_SMO=%d ret=%d SMO_X=%d\n", (int)is_SMO, ret, -SMO_X);
+  if(is_SMO) printf("FUCK: is_SMO=%d ret=%d SMO_X=%d\n", (int)is_SMO, ret, -SMO_X);
   goto retry;
 }
 
@@ -1272,7 +1273,6 @@ cas_retry:
         v = indirect_v;
         goto re_insert;
       }
-      printf("FUCK\n");
       old_v = *(Value *)cas_buf;
       goto cas_retry;
     }
@@ -1293,6 +1293,7 @@ cas_retry:
   }
 
   assert(need_split);
+  unspear_addr(lock_addr, false, cas_buffer, cxt, coro_id, false);
 #ifdef TREE_ENABLE_MARLIN
   if (!spear_and_read_page(page_buffer, page_addr, kLeafPageSize, cas_buffer, lock_addr, true, cxt, coro_id, true)) {
     // is spliting
