@@ -1269,8 +1269,10 @@ cas_retry:
     if (!dsm->cas_sync(ptr_addr, old_v, v, cas_buf, cxt)) {
       if (is_insert) {
         unspear_addr(lock_addr, false, cas_buf, cxt, coro_id, true);
-        v = indirect_v;
-        goto re_insert;
+        // FUCK
+        return true;
+        // v = indirect_v;
+        // goto re_insert;
       }
       old_v = *(Value *)cas_buf;
       goto cas_retry;
@@ -1294,7 +1296,7 @@ cas_retry:
   assert(need_split);
 #ifdef TREE_ENABLE_MARLIN
   if (!spear_and_read_page(page_buffer, page_addr, kLeafPageSize, cas_buffer, lock_addr, true, cxt, coro_id, true)) {
-    // is spliting
+    // is spliting FUCK
     unspear_addr(lock_addr, true, cas_buffer, cxt, coro_id, false);
     // v = indirect_v;
     // goto re_insert;
