@@ -1298,7 +1298,6 @@ cas_retry:
     unspear_addr(lock_addr, true, cas_buffer, cxt, coro_id, false);
     v = indirect_v;
     goto re_insert;
-    return true;
   }
 #endif
 
