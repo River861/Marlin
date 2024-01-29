@@ -1265,24 +1265,23 @@ re_insert:
     // modify value_pointer with CAS
     auto key_addr = page_addr + (update_pos - (char *)page);
     auto ptr_addr = key_addr + define::keyLen;
-    auto cas_buf = dsm->get_rbuf(coro_id).get_cas_buffer();
 cas_retry:
-    if (!dsm->cas_sync(ptr_addr, old_v, v, cas_buf, cxt)) {
+    if (!dsm->cas_sync(ptr_addr, old_v, v, cas_buffer, cxt)) {
       if (is_insert) {
-        unspear_addr(lock_addr, false, cas_buf, cxt, coro_id, true);
+        unspear_addr(lock_addr, false, cas_buffer, cxt, coro_id, true);
         // FUCK
         return true;
         // v = indirect_v;
         // goto re_insert;
       }
-      old_v = *(Value *)cas_buf;
+      old_v = *(Value *)cas_buffer;
       goto cas_retry;
     }
     if (is_insert) { // write key and unlock
-      write_page_and_unspear(update_pos, key_addr, define::keyLen, cas_buf, lock_addr, false, cxt, coro_id, false);
+      write_page_and_unspear(update_pos, key_addr, define::keyLen, cas_buffer, lock_addr, false, cxt, coro_id, false);
     }
     else {  // unlock
-      unspear_addr(lock_addr, false, cas_buf, cxt, coro_id, false);
+      unspear_addr(lock_addr, false, cas_buffer, cxt, coro_id, false);
     }
 #else
     UNUSED(old_v);
