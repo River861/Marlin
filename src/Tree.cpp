@@ -341,8 +341,8 @@ retry:
       if (ret >= 1) return true;
     }
   }
-  std::cout << "FUCK-2: " << lock_addr;
-  printf(" is_SMO=%d from_IDU=%d ret=%d SMO_X=%d\n", (int)is_SMO, (int)from_IDU, ret, -SMO_X);
+  // std::cout << "FUCK-2: " << lock_addr;
+  // printf(" is_SMO=%d from_IDU=%d ret=%d SMO_X=%d\n", (int)is_SMO, (int)from_IDU, ret, -SMO_X);
   goto retry;
 }
 
