@@ -332,6 +332,7 @@ retry:
 #else
     dsm->read_dm_sync((char *)buf, lock_addr, sizeof(uint64_t), cxt);
 #endif
+    ret = *(int64_t *)buf;
     if (is_SMO) {
       if (ret == -SMO_X) return true;
     }
