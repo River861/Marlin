@@ -326,9 +326,9 @@ inline bool Tree::try_spear_addr(GlobalAddress lock_addr, bool is_SMO,
 retry:
     lock_fail[dsm->getMyThreadID()]++;
 #ifdef CONFIG_ENABLE_EMBEDDING_LOCK
-    dsm->read_sync(buf, lock_addr, sizeof(uint64_t), cxt);
+    dsm->read_sync((char *)buf, lock_addr, sizeof(uint64_t), cxt);
 #else
-    dsm->read_dm_sync(buf, lock_addr, sizeof(uint64_t), cxt);
+    dsm->read_dm_sync((char *)buf, lock_addr, sizeof(uint64_t), cxt);
 #endif
     auto ret = *(int64_t *)buf;
     if (is_SMO) {
