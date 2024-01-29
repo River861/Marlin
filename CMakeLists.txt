@@ -73,6 +73,8 @@ endif()
 #Tree Options
 option (READ_DELEGATION "+ Read delegation" OFF)
 option (WRITE_COMBINING "+ Write combining" OFF)
+# TODO: write options for ENABLE_VAR_SIZE_KV, TREE_ENABLE_MARLIN
+
 if(READ_DELEGATION)
     add_definitions(-DTREE_ENABLE_READ_DELEGATION)
 else()
