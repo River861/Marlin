@@ -1127,15 +1127,17 @@ bool Tree::leaf_page_store(GlobalAddress page_addr, const Key &k,
     assert(update_addr);
 #ifdef TREE_ENABLE_MARLIN
     // modify value_pointer with CAS
+    auto key_addr = page_addr + (update_addr - (char *)page);
+    auto ptr_addr = key_addr + define::keyLen;
 cas_retry:
-    if (!dsm->cas_sync(update_addr, old_v, v, cas_buffer, cxt)) {
+    if (!dsm->cas_sync(ptr_addr, old_v, v, cas_buffer, cxt)) {
       old_v = *(Value *)cas_buffer;
       goto cas_retry;
     }
     if (is_insert) { // write key and unlock
       RdmaOpRegion rs[2];
       rs[0].source = (uint64_t)update_addr;
-      rs[0].dest = (page_addr + (update_addr - (char *)page)).to_uint64();
+      rs[0].dest = key_addr.to_uint64();
       rs[0].size = define::keyLen;
       rs[0].is_on_chip = false;
 
