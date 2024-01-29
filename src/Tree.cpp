@@ -1147,8 +1147,8 @@ bool Tree::leaf_page_store(GlobalAddress page_addr, const Key &k,
   auto tag = dsm->getThreadTag();
   assert(tag != 0);
 
-re_insert:
 #ifdef TREE_ENABLE_MARLIN
+re_insert:
   if (!(spear_and_read_page(page_buffer, page_addr, kLeafPageSize, cas_buffer, lock_addr, false, cxt, coro_id))) {
     // is spliting
     unspear_addr(lock_addr, false, cas_buffer, cxt, coro_id, true);
