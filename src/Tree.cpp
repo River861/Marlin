@@ -309,7 +309,7 @@ inline bool Tree::try_spear_addr(GlobalAddress lock_addr, bool is_SMO,
   }
 
   try_lock[dsm->getMyThreadID()] ++;
-  int64_t SMO_delta = from_IDU ? -SMO_X-1 : -SMO_X;
+  int64_t SMO_delta = from_IDU ? (-SMO_X-1) : -SMO_X;
 #ifdef CONFIG_ENABLE_EMBEDDING_LOCK
   dsm->faa_boundary_sync(lock_addr, is_SMO ? SMO_delta : 1, buf, 63ULL, cxt);
 #else
@@ -1272,6 +1272,7 @@ cas_retry:
         v = indirect_v;
         goto re_insert;
       }
+      printf("FUCK\n");
       old_v = *(Value *)cas_buf;
       goto cas_retry;
     }
