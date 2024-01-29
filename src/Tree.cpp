@@ -1150,7 +1150,7 @@ bool Tree::leaf_page_store(GlobalAddress page_addr, const Key &k,
 
 re_insert:
 #ifdef TREE_ENABLE_MARLIN
-  if (!spear_and_read_page(page_buffer, page_addr, kLeafPageSize, cas_buffer, lock_addr, false, cxt, coro_id)) {
+  if (!(spear_and_read_page(page_buffer, page_addr, kLeafPageSize, cas_buffer, lock_addr, false, cxt, coro_id))) {
     // is spliting
     unspear_addr(lock_addr, false, cas_buffer, cxt, coro_id, false);
     return true;
@@ -1276,7 +1276,7 @@ cas_retry:
       old_v = *(Value *)cas_buffer;
       goto cas_retry;
     }
-    if (is_insert) { // write key and unlock
+    if (is_insert) { // write key and unlock  TODO
       write_page_and_unspear(update_pos, key_addr, define::keyLen, cas_buffer, lock_addr, false, cxt, coro_id, false);
     }
     else {  // unlock
@@ -1294,7 +1294,7 @@ cas_retry:
 
   assert(need_split);
 #ifdef TREE_ENABLE_MARLIN
-  if (!spear_and_read_page(page_buffer, page_addr, kLeafPageSize, cas_buffer, lock_addr, true, cxt, coro_id, true)) {
+  if (!(spear_and_read_page(page_buffer, page_addr, kLeafPageSize, cas_buffer, lock_addr, true, cxt, coro_id, true))) {
     // is spliting
     unspear_addr(lock_addr, true, cas_buffer, cxt, coro_id, false);
     return true;
@@ -1318,7 +1318,11 @@ cas_retry:
   int m = cnt / 2;
   split_key = page->records[m].key;
   if (split_key <= page->hdr.lowest) {
-    std::cout << "FUCK: split_key=" << key2int(split_key) << "lowest=" << key2int(page->hdr.lowest) << " cnt=" << cnt << std::endl;
+    std::cout << "FUCK: split_key=" << key2int(split_key) << " lowest=" << key2int(page->hdr.lowest) << " cnt=" << cnt << std::endl;
+    for (int i = 0; i < cnt; ++ i) {
+      std::cout << page->records[i].key;
+    }
+    std::cout << std::endl;
   }
   assert(split_key > page->hdr.lowest);
   assert(split_key < page->hdr.highest);
