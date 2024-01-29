@@ -340,7 +340,7 @@ retry:
       if (ret >= 1) return true;
     }
   }
-  if(is_SMO) printf("FUCK: is_SMO=%d ret=%d SMO_X=%d\n", (int)is_SMO, ret, -SMO_X);
+  printf("FUCK: is_SMO=%d ret=%d SMO_X=%d\n", (int)is_SMO, ret, -SMO_X);
   goto retry;
 }
 
@@ -1151,7 +1151,7 @@ re_insert:
 #ifdef TREE_ENABLE_MARLIN
   if (!spear_and_read_page(page_buffer, page_addr, kLeafPageSize, cas_buffer, lock_addr, false, cxt, coro_id)) {
     // is spliting
-    unspear_addr(lock_addr, false, cas_buffer, cxt, coro_id, true);
+    unspear_addr(lock_addr, false, cas_buffer, cxt, coro_id, false);
 waiting:
 #ifdef CONFIG_ENABLE_EMBEDDING_LOCK
     dsm->read_sync((char *)cas_buffer, lock_addr, sizeof(uint64_t), cxt);
@@ -1295,7 +1295,7 @@ cas_retry:
 #ifdef TREE_ENABLE_MARLIN
   if (!spear_and_read_page(page_buffer, page_addr, kLeafPageSize, cas_buffer, lock_addr, true, cxt, coro_id, true)) {
     // is spliting
-    unspear_addr(lock_addr, true, cas_buffer, cxt, coro_id, true);
+    unspear_addr(lock_addr, true, cas_buffer, cxt, coro_id, false);
     v = indirect_v;
     goto re_insert;
   }
