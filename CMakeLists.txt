@@ -73,10 +73,10 @@ else()
 endif()
 
 if(WRITE_COMBINING)
-    add_definitions(-DCONFIG_ENABLE_LOCK_HANDOVER)
+    remove_definitions(-DCONFIG_ENABLE_LOCK_HANDOVER)
     add_definitions(-DTREE_ENABLE_WRITE_COMBINING)
 else()
-    add_definitions(-DTREE_TEST_HOCL_HANDOVER)
+    add_definitions(-DCONFIG_ENABLE_LOCK_HANDOVER)
     remove_definitions(-DTREE_ENABLE_WRITE_COMBINING)
 endif()
 

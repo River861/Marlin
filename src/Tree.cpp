@@ -1143,30 +1143,13 @@ bool Tree::leaf_page_store(GlobalAddress page_addr, const Key &k,
 cas_retry:
     if (!dsm->cas_sync(ptr_addr, old_v, v, cas_buf, cxt)) {
       old_v = *(Value *)cas_buf;
-      printf("FUCK\n");
       goto cas_retry;
     }
     if (is_insert) { // write key and unlock
-      RdmaOpRegion rs[2];
-      rs[0].source = (uint64_t)update_pos;
-      rs[0].dest = key_addr.to_uint64();
-      rs[0].size = define::keyLen;
-      rs[0].is_on_chip = false;
-
-      *cas_buf = 0;
-      rs[1].source = (uint64_t)cas_buf;
-      rs[1].dest = lock_addr.to_uint64();
-      rs[1].size = sizeof(uint64_t);
-#ifdef CONFIG_ENABLE_EMBEDDING_LOCK
-      rs[1].is_on_chip = false;
-#else
-      rs[1].is_on_chip = true;
-#endif
-      dsm->write_batch_sync(rs, 2, cxt);
+      write_page_and_unlock(update_pos, key_addr, define::keyLen, cas_buf, lock_addr, tag, cxt, coro_id, false);
     }
     else {  // unlock
-      *cas_buf = 0;
-      dsm->write_sync((char*)cas_buf, lock_addr, sizeof(uint64_t), cxt);
+      unlock_addr(lock_addr, tag, cas_buf, cxt, coro_id, false);
     }
 #else
     UNUSED(old_v);
