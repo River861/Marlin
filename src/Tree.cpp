@@ -1143,6 +1143,7 @@ bool Tree::leaf_page_store(GlobalAddress page_addr, const Key &k,
 cas_retry:
     if (!dsm->cas_sync(ptr_addr, old_v, v, cas_buf, cxt)) {
       old_v = *(Value *)cas_buf;
+      printf("FUCK\n");
       goto cas_retry;
     }
     if (is_insert) { // write key and unlock
