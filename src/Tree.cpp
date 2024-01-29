@@ -1208,11 +1208,7 @@ waiting:
   auto block_buffer = (dsm->get_rbuf(coro_id)).get_block_buffer();
   auto data_block = new (block_buffer) DataBlock(v);
   auto block_addr = dsm->alloc(define::dataBlockLen);
-#ifdef TREE_ENABLE_MARLIN
-  dsm->write(block_buffer, block_addr, define::dataBlockLen, false, cxt);  // !!!NOTE: Unsignal the data-block-write to simulate marlin's optimization
-#else
   dsm->write_sync(block_buffer, block_addr, define::dataBlockLen, cxt);
-#endif
   // change value into the DataPointer value pointing to the DataBlock
   v = (uint64_t)DataPointer(define::dataBlockLen, block_addr);
   }
