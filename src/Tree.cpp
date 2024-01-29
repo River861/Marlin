@@ -340,7 +340,7 @@ retry:
       if (ret >= 1) return true;
     }
   }
-  printf("FUCK: is_SMO=%d from_IDU=%d ret=%d SMO_X=%d\n", (int)is_SMO, (int)from_IDU, ret, -SMO_X);
+  // printf("FUCK: is_SMO=%d from_IDU=%d ret=%d SMO_X=%d\n", (int)is_SMO, (int)from_IDU, ret, -SMO_X);
   goto retry;
 }
 
@@ -1150,7 +1150,7 @@ re_insert:
 
 #ifdef TREE_ENABLE_MARLIN
   if (!spear_and_read_page(page_buffer, page_addr, kLeafPageSize, cas_buffer, lock_addr, false, cxt, coro_id)) {
-    // is spliting
+    // is spliting FUCK
     unspear_addr(lock_addr, false, cas_buffer, cxt, coro_id, false);
     return true;
 // waiting:
