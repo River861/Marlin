@@ -336,7 +336,10 @@ retry:
 #endif
     auto ret = *(int64_t *)buf;
     if (is_SMO) {
-      if (ret == -SMO_X) return true;
+      if (ret == -SMO_X) {
+        printf("FUCK: ret=%d SMO_X=%d\n", ret, -SMO_X);
+        return true;
+      }
     }
     else {
       if (ret >= 1) return true;
