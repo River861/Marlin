@@ -349,7 +349,7 @@ inline void Tree::unspear_addr(GlobalAddress lock_addr, bool is_SMO, uint64_t *b
     return;
   }
 
-  auto buf = dsm->get_rbuf(coro_id).get_cas_buffer();
+  auto buf = (dsm->get_rbuf(coro_id)).get_cas_buffer();
 
 #ifdef CONFIG_ENABLE_EMBEDDING_LOCK
   if (async) {
