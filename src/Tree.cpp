@@ -1150,20 +1150,20 @@ re_insert:
 
 #ifdef TREE_ENABLE_MARLIN
   if (!spear_and_read_page(page_buffer, page_addr, kLeafPageSize, cas_buffer, lock_addr, false, cxt, coro_id)) {
-    // is spliting FUCK
+    // is spliting
     unspear_addr(lock_addr, false, cas_buffer, cxt, coro_id, false);
     return true;
-// waiting:
-// #ifdef CONFIG_ENABLE_EMBEDDING_LOCK
-//     dsm->read_sync((char *)cas_buffer, lock_addr, sizeof(uint64_t), cxt);
-// #else
-//     dsm->read_dm_sync((char *)cas_buffer, lock_addr, sizeof(uint64_t), cxt);
-// #endif
-//     if (*(int64_t *)cas_buffer < -SMO_T) {
-//       goto waiting;
-//     }
-//     v = indirect_v;
-//     goto re_insert;
+waiting:
+#ifdef CONFIG_ENABLE_EMBEDDING_LOCK
+    dsm->read_sync((char *)cas_buffer, lock_addr, sizeof(uint64_t), cxt);
+#else
+    dsm->read_dm_sync((char *)cas_buffer, lock_addr, sizeof(uint64_t), cxt);
+#endif
+    if (*(int64_t *)cas_buffer < -SMO_T) {
+      goto waiting;
+    }
+    v = indirect_v;
+    goto re_insert;
   }
 #else
   lock_and_read_page(page_buffer, page_addr, kLeafPageSize, cas_buffer,
@@ -1269,15 +1269,11 @@ cas_retry:
     if (!dsm->cas_sync(ptr_addr, old_v, v, cas_buffer, cxt)) {
       if (is_insert) {
         unspear_addr(lock_addr, false, cas_buffer, cxt, coro_id, true);
-        // FUCK
-        return true;
-        // v = indirect_v;
-        // goto re_insert;
+        v = indirect_v;
+        goto re_insert;
       }
-      // FUCK
-      return true;
-      // old_v = *(Value *)cas_buffer;
-      // goto cas_retry;
+      old_v = *(Value *)cas_buffer;
+      goto cas_retry;
     }
     if (is_insert) { // write key and unlock
       write_page_and_unspear(update_pos, key_addr, define::keyLen, cas_buffer, lock_addr, false, cxt, coro_id, false);
@@ -1298,10 +1294,10 @@ cas_retry:
   assert(need_split);
 #ifdef TREE_ENABLE_MARLIN
   if (!spear_and_read_page(page_buffer, page_addr, kLeafPageSize, cas_buffer, lock_addr, true, cxt, coro_id, true)) {
-    // is spliting FUCK
+    // is spliting
     unspear_addr(lock_addr, true, cas_buffer, cxt, coro_id, false);
-    // v = indirect_v;
-    // goto re_insert;
+    v = indirect_v;
+    goto re_insert;
     return true;
   }
 #endif
