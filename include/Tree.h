@@ -105,9 +105,6 @@ public:
 #ifdef TREE_ENABLE_MARLIN
   Key key;
   Value value;  // !!!NOTE: this field will be casted into a DataPointer
-
-  static uint8_t f_version;  // useless
-  static uint8_t r_version;  // useless
 #else
   uint8_t f_version : 4;
   union {

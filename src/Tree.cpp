@@ -637,9 +637,11 @@ uint64_t Tree::range_query(const Key &from, const Key &to, std::map<Key, Value> 
         auto page = (LeafPage *)(range_buffer + k * kLeafPageSize);
         for (int i = 0; i < kLeafCardinality; ++i) {
           auto &r = page->records[i];
-          if (r.value != kValueNull && r.f_version == r.r_version) {
+          if (r.value != kValueNull) {
+#ifndef TREE_ENABLE_MARLIN
+            if (r.f_version != r.r_version) continue;
+#endif
             if (r.key >= from && r.key <= to) {
-              // value_buffer[counter++] = r.value;
               ret[r.key] = r.value;
             }
           }
@@ -657,9 +659,11 @@ uint64_t Tree::range_query(const Key &from, const Key &to, std::map<Key, Value> 
       auto page = (LeafPage *)(range_buffer + k * kLeafPageSize);
       for (int i = 0; i < kLeafCardinality; ++i) {
         auto &r = page->records[i];
-        if (r.value != kValueNull && r.f_version == r.r_version) {
+        if (r.value != kValueNull) {
+#ifndef TREE_ENABLE_MARLIN
+          if (r.f_version != r.r_version) continue;
+#endif
           if (r.key >= from && r.key <= to) {
-            // value_buffer[counter++] = r.value;
             ret[r.key] = r.value;
           }
         }
@@ -858,7 +862,10 @@ void Tree::leaf_page_search(LeafPage *page, const Key &k,
 
   for (int i = 0; i < kLeafCardinality; ++i) {
     auto &r = page->records[i];
-    if (r.key == k && r.value != kValueNull && r.f_version == r.r_version) {
+    if (r.key == k && r.value != kValueNull) {
+#ifndef TREE_ENABLE_MARLIN
+      if (r.f_version != r.r_version) continue;
+#endif
       result.val = r.value;
       break;
     }
@@ -1094,8 +1101,10 @@ bool Tree::leaf_page_store(GlobalAddress page_addr, const Key &k,
       if (r.key == k) {
         old_v = r.value;
         r.value = v;
+#ifndef TREE_ENABLE_MARLIN
         r.f_version ++;
         r.r_version = r.f_version;
+#endif
         update_addr = (char *)&r;
         break;
       }
@@ -1116,8 +1125,10 @@ bool Tree::leaf_page_store(GlobalAddress page_addr, const Key &k,
     auto &r = page->records[empty_index];
     r.key = k;
     r.value = v;
+#ifndef TREE_ENABLE_MARLIN
     r.f_version++;
     r.r_version = r.f_version;
+#endif
     update_addr = (char *)&r;
     cnt++;
   }
