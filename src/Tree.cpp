@@ -316,7 +316,7 @@ inline bool Tree::try_spear_addr(GlobalAddress lock_addr, bool is_SMO,
   dsm->faa_dm_sync(lock_addr, is_SMO ? SMO_delta : 1, buf, cxt);
 #endif
   auto ret = *(int64_t *)buf;
-  std::cout << "FUCK: " << lock_addr;
+  std::cout << "FUCK-1: " << lock_addr;
   printf(" is_SMO=%d from_IDU=%d ret=%d SMO_X=%d\n", (int)is_SMO, (int)from_IDU, ret, -SMO_X);
   if (is_SMO) {
     if (ret == 0) return true;
@@ -343,7 +343,7 @@ retry:
       if (ret >= 1) return true;
     }
   }
-  std::cout << "FUCK: " << lock_addr;
+  std::cout << "FUCK-2: " << lock_addr;
   printf(" is_SMO=%d from_IDU=%d ret=%d SMO_X=%d\n", (int)is_SMO, (int)from_IDU, ret, -SMO_X);
   goto retry;
 }
