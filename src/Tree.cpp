@@ -1151,7 +1151,7 @@ re_insert:
 #ifdef TREE_ENABLE_MARLIN
   if (!(spear_and_read_page(page_buffer, page_addr, kLeafPageSize, cas_buffer, lock_addr, false, cxt, coro_id))) {
     // is spliting
-    unspear_addr(lock_addr, false, cas_buffer, cxt, coro_id, false);
+    unspear_addr(lock_addr, false, cas_buffer, cxt, coro_id, true);
 waiting:
 #ifdef CONFIG_ENABLE_EMBEDDING_LOCK
     dsm->read_sync((char *)cas_buffer, lock_addr, sizeof(uint64_t), cxt);
@@ -1208,7 +1208,11 @@ waiting:
   auto block_buffer = (dsm->get_rbuf(coro_id)).get_block_buffer();
   auto data_block = new (block_buffer) DataBlock(v);
   auto block_addr = dsm->alloc(define::dataBlockLen);
+#ifdef TREE_ENABLE_MARLIN
+  dsm->write(block_buffer, block_addr, define::dataBlockLen, false, cxt);  // !!!NOTE: Unsignal the data-block-write to simulate marlin's optimization
+#else
   dsm->write_sync(block_buffer, block_addr, define::dataBlockLen, cxt);
+#endif
   // change value into the DataPointer value pointing to the DataBlock
   v = (uint64_t)DataPointer(define::dataBlockLen, block_addr);
   }
@@ -1294,7 +1298,7 @@ cas_retry:
 #ifdef TREE_ENABLE_MARLIN
   if (!(spear_and_read_page(page_buffer, page_addr, kLeafPageSize, cas_buffer, lock_addr, true, cxt, coro_id, true))) {
     // is spliting
-    unspear_addr(lock_addr, true, cas_buffer, cxt, coro_id, false);
+    unspear_addr(lock_addr, true, cas_buffer, cxt, coro_id, true);
     v = indirect_v;
     goto re_insert;
   }
