@@ -320,6 +320,7 @@ inline bool Tree::try_spear_addr(GlobalAddress lock_addr, bool is_SMO,
   printf(" is_SMO=%d from_IDU=%d ret=%d SMO_X=%d\n", (int)is_SMO, (int)from_IDU, ret, -SMO_X);
   if (is_SMO) {
     if (ret == 0) return true;
+    if (from_IDU && ret == 1) return true;
   }
   else {
     if (ret >= 0) return true;
