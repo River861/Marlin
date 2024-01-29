@@ -476,7 +476,7 @@ bool rdmaWriteFaa(ibv_qp *qp, const RdmaOpRegion &write_ror,
   wr[1].wr.atomic.rkey = faa_ror.remoteRKey;
   wr[1].wr.atomic.compare_add = add_val;
   wr[1].wr_id = wrID;
-
+  wr[1].send_flags |= IBV_SEND_FENCE;
   if (isSignaled) {
     wr[1].send_flags |= IBV_SEND_SIGNALED;
   }

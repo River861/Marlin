@@ -399,8 +399,7 @@ void Tree::write_page_and_unspear(char *page_buffer, GlobalAddress page_addr,
   rs[0].size = page_size;
   rs[0].is_on_chip = false;
 
-  auto buf = dsm->get_rbuf(coro_id).get_cas_buffer();
-  rs[1].source = (uint64_t)buf;
+  rs[1].source = (uint64_t)cas_buffer;
   rs[1].dest = lock_addr.to_uint64();
   rs[1].size = sizeof(uint64_t);
 #ifdef CONFIG_ENABLE_EMBEDDING_LOCK
@@ -1268,7 +1267,7 @@ waiting:
 cas_retry:
     if (!dsm->cas_sync(ptr_addr, old_v, v, cas_buffer, cxt)) {
       if (is_insert) {
-        unspear_addr(lock_addr, false, cas_buffer, cxt, coro_id, true);
+        unspear_addr(lock_addr, false, cas_buffer, cxt, coro_id, false);
         v = indirect_v;
         goto re_insert;
       }
