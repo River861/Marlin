@@ -1274,8 +1274,10 @@ cas_retry:
         // v = indirect_v;
         // goto re_insert;
       }
-      old_v = *(Value *)cas_buffer;
-      goto cas_retry;
+      // FUCK
+      return true;
+      // old_v = *(Value *)cas_buffer;
+      // goto cas_retry;
     }
     if (is_insert) { // write key and unlock
       write_page_and_unspear(update_pos, key_addr, define::keyLen, cas_buffer, lock_addr, false, cxt, coro_id, false);
