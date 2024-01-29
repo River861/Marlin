@@ -1153,6 +1153,7 @@ re_insert:
     // is spliting
     unspear_addr(lock_addr, false, cas_buffer, cxt, coro_id, true);
 waiting:
+    lock_fail[dsm->getMyThreadID()]++;
 #ifdef CONFIG_ENABLE_EMBEDDING_LOCK
     dsm->read_sync((char *)cas_buffer, lock_addr, sizeof(uint64_t), cxt);
 #else
@@ -1295,6 +1296,7 @@ cas_retry:
   if (!(spear_and_read_page(page_buffer, page_addr, kLeafPageSize, cas_buffer, lock_addr, true, cxt, coro_id, true))) {
     // is spliting
     unspear_addr(lock_addr, true, cas_buffer, cxt, coro_id, true);
+    lock_fail[dsm->getMyThreadID()]++;
     v = indirect_v;
     goto re_insert;
   }
