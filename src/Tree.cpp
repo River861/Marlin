@@ -316,8 +316,6 @@ inline bool Tree::try_spear_addr(GlobalAddress lock_addr, bool is_SMO,
   dsm->faa_dm_sync(lock_addr, is_SMO ? SMO_delta : 1, buf, cxt);
 #endif
   auto ret = *(int64_t *)buf;
-  std::cout << "FUCK-1: " << lock_addr;
-  printf(" is_SMO=%d from_IDU=%d ret=%d SMO_X=%d\n", (int)is_SMO, (int)from_IDU, ret, -SMO_X);
   if (is_SMO) {
     if (ret == 0) return true;
     if (from_IDU && ret == 1) return true;
@@ -1155,17 +1153,18 @@ re_insert:
   if (!spear_and_read_page(page_buffer, page_addr, kLeafPageSize, cas_buffer, lock_addr, false, cxt, coro_id)) {
     // is spliting
     unspear_addr(lock_addr, false, cas_buffer, cxt, coro_id, false);
-waiting:
-#ifdef CONFIG_ENABLE_EMBEDDING_LOCK
-    dsm->read_sync((char *)cas_buffer, lock_addr, sizeof(uint64_t), cxt);
-#else
-    dsm->read_dm_sync((char *)cas_buffer, lock_addr, sizeof(uint64_t), cxt);
-#endif
-    if (*(int64_t *)cas_buffer < -SMO_T) {
-      goto waiting;
-    }
-    v = indirect_v;
-    goto re_insert;
+    return true;
+// waiting:
+// #ifdef CONFIG_ENABLE_EMBEDDING_LOCK
+//     dsm->read_sync((char *)cas_buffer, lock_addr, sizeof(uint64_t), cxt);
+// #else
+//     dsm->read_dm_sync((char *)cas_buffer, lock_addr, sizeof(uint64_t), cxt);
+// #endif
+//     if (*(int64_t *)cas_buffer < -SMO_T) {
+//       goto waiting;
+//     }
+//     v = indirect_v;
+//     goto re_insert;
   }
 #else
   lock_and_read_page(page_buffer, page_addr, kLeafPageSize, cas_buffer,
@@ -1298,8 +1297,9 @@ cas_retry:
   if (!spear_and_read_page(page_buffer, page_addr, kLeafPageSize, cas_buffer, lock_addr, true, cxt, coro_id, true)) {
     // is spliting
     unspear_addr(lock_addr, true, cas_buffer, cxt, coro_id, false);
-    v = indirect_v;
-    goto re_insert;
+    return true;
+    // v = indirect_v;
+    // goto re_insert;
   }
 #endif
 
