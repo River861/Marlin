@@ -1128,7 +1128,6 @@ bool Tree::leaf_page_store(GlobalAddress page_addr, const Key &k,
                            Value v, GlobalAddress root, int level,
                            CoroContext *cxt, int coro_id, bool from_cache) {
   Value indirect_v = v;
-re_insert:
   uint64_t lock_index =
       CityHash64((char *)&page_addr, sizeof(page_addr)) % define::kNumOfLock;
 
@@ -1148,11 +1147,11 @@ re_insert:
   auto tag = dsm->getThreadTag();
   assert(tag != 0);
 
+re_insert:
 #ifdef TREE_ENABLE_MARLIN
   if (!spear_and_read_page(page_buffer, page_addr, kLeafPageSize, cas_buffer, lock_addr, false, cxt, coro_id)) {
     // is spliting
     unspear_addr(lock_addr, false, cas_buffer, cxt, coro_id, false);
-    return true;
 waiting:
 #ifdef CONFIG_ENABLE_EMBEDDING_LOCK
     dsm->read_sync((char *)cas_buffer, lock_addr, sizeof(uint64_t), cxt);
