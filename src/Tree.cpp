@@ -1150,7 +1150,7 @@ bool Tree::leaf_page_store(GlobalAddress page_addr, const Key &k,
 
 re_insert:
 #ifdef TREE_ENABLE_MARLIN
-  if (!(spear_and_read_page(page_buffer, page_addr, kLeafPageSize, cas_buffer, lock_addr, false, cxt, coro_id))) {
+  if (!spear_and_read_page(page_buffer, page_addr, kLeafPageSize, cas_buffer, lock_addr, false, cxt, coro_id)) {
     // is spliting
     unspear_addr(lock_addr, false, cas_buffer, cxt, coro_id, false);
     return true;
@@ -1294,7 +1294,7 @@ cas_retry:
 
   assert(need_split);
 #ifdef TREE_ENABLE_MARLIN
-  if (!(spear_and_read_page(page_buffer, page_addr, kLeafPageSize, cas_buffer, lock_addr, true, cxt, coro_id, true))) {
+  if (!spear_and_read_page(page_buffer, page_addr, kLeafPageSize, cas_buffer, lock_addr, true, cxt, coro_id, true)) {
     // is spliting
     unspear_addr(lock_addr, true, cas_buffer, cxt, coro_id, false);
     return true;
