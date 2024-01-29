@@ -1317,6 +1317,9 @@ cas_retry:
 
   int m = cnt / 2;
   split_key = page->records[m].key;
+  if (split_key <= page->hdr.lowest) {
+    std::cout << "FUCK: split_key=" << key2int(split_key) << "lowest=" << key2int(page->hdr.lowest) << " cnt=" << cnt << std::endl;
+  }
   assert(split_key > page->hdr.lowest);
   assert(split_key < page->hdr.highest);
 
