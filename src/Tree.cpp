@@ -1296,8 +1296,9 @@ cas_retry:
   if (!spear_and_read_page(page_buffer, page_addr, kLeafPageSize, cas_buffer, lock_addr, true, cxt, coro_id, true)) {
     // is spliting
     unspear_addr(lock_addr, true, cas_buffer, cxt, coro_id, false);
-    v = indirect_v;
-    goto re_insert;
+    // v = indirect_v;
+    // goto re_insert;
+    return true;
   }
 #endif
 
