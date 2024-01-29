@@ -358,7 +358,7 @@ private:
                               int page_size, uint64_t *cas_buffer,
                               GlobalAddress lock_addr, bool is_SMO,
                               CoroContext *cxt, int coro_id, bool async);
-  void spear_and_read_page(char *page_buffer, GlobalAddress page_addr,
+  bool spear_and_read_page(char *page_buffer, GlobalAddress page_addr,
                           int page_size, uint64_t *cas_buffer,
                           GlobalAddress lock_addr, bool is_SMO,
                           CoroContext *cxt, int coro_id, bool from_IDU=false);

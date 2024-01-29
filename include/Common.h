@@ -174,7 +174,8 @@ constexpr int spanSize = 32;
 #ifdef TREE_ENABLE_MARLIN
 constexpr uint32_t headerSize    = define::keyLen * 2 + 19 + 4;
 constexpr uint32_t leafEntrySize = define::keyLen + define::inlineValLen;
-constexpr int64_t  SMO_X         = MAX_APP_THREAD + 1;
+constexpr int64_t  SMO_T         = 8 * MAX_APP_THREAD * MAX_MACHINE * spanSize;
+constexpr int64_t  SMO_X         = 2 * SMO_T;
 #else
 constexpr uint32_t headerSize        = define::keyLen * 2 + 19;
 constexpr uint32_t leafEntrySize = define::keyLen + define::inlineValLen + 2;

@@ -318,6 +318,9 @@ inline bool Tree::try_spear_addr(GlobalAddress lock_addr, bool is_SMO,
   auto ret = *(int64_t *)buf;
   if (is_SMO) {
     if (ret == 0) return true;
+    else if (ret < -SMO_T) {
+      return false;  // already locked by SMO
+    }
   }
   else {
     if (ret >= 0) return true;
@@ -333,16 +336,13 @@ retry:
 #endif
     auto ret = *(int64_t *)buf;
     if (is_SMO) {
-      if (ret != -SMO_X) {
-        printf("FUCK\n");
-        goto retry;
-      }
+      if (ret == -SMO_X) return true;
     }
     else {
-      if (ret < 0) goto retry;
+      if (ret >= 1) return true;
     }
   }
-  return true;
+  goto retry;
 }
 
 inline void Tree::unspear_addr(GlobalAddress lock_addr, bool is_SMO, uint64_t *buf,
@@ -370,14 +370,16 @@ inline void Tree::unspear_addr(GlobalAddress lock_addr, bool is_SMO, uint64_t *b
   releases_local_lock(lock_addr);
 }
 
-void Tree::spear_and_read_page(char *page_buffer, GlobalAddress page_addr,
+bool Tree::spear_and_read_page(char *page_buffer, GlobalAddress page_addr,
                                int page_size, uint64_t *cas_buffer,
                                GlobalAddress lock_addr, bool is_SMO,
                                CoroContext *cxt, int coro_id, bool from_IDU) {
-  try_spear_addr(lock_addr, is_SMO, cas_buffer, cxt, coro_id, from_IDU);
+  bool ret = try_spear_addr(lock_addr, is_SMO, cas_buffer, cxt, coro_id, from_IDU);
+  if (!ret) return false;
 
   dsm->read_sync(page_buffer, page_addr, page_size, cxt);
   pattern[dsm->getMyThreadID()][page_addr.nodeID]++;
+  return true;
 }
 
 void Tree::write_page_and_unspear(char *page_buffer, GlobalAddress page_addr,
@@ -1279,8 +1281,12 @@ cas_retry:
 
   assert(need_split);
 #ifdef TREE_ENABLE_MARLIN
-  spear_and_read_page(page_buffer, page_addr, kLeafPageSize, cas_buffer,
-                     lock_addr, true, cxt, coro_id, true);
+  if (!spear_and_read_page(page_buffer, page_addr, kLeafPageSize, cas_buffer, lock_addr, true, cxt, coro_id, true)) {
+    // is spliting
+    unspear_addr(lock_addr, true, cas_buffer, cxt, coro_id, true);
+    v = indirect_v;
+    goto re_insert;
+  }
 #endif
 
   std::sort(
