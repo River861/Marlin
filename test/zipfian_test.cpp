@@ -14,7 +14,7 @@
 #include <string>
 // std::mutex mutex;
 
-#define USE_CORO
+// #define USE_CORO
 #define TEST_EPOCH 10
 
 extern uint64_t cache_miss[MAX_APP_THREAD];

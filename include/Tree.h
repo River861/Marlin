@@ -350,8 +350,6 @@ private:
                    CoroContext *cxt, int coro_id, bool async);
 
 #ifdef TREE_ENABLE_MARLIN
-  bool try_spear_addr(GlobalAddress lock_addr, bool is_SMO, uint64_t *buf,
-                      CoroContext *cxt, int coro_id, bool from_IDU=false);
   void unspear_addr(GlobalAddress lock_addr, bool is_SMO, uint64_t *buf,
                     CoroContext *cxt, int coro_id, bool async);
   void write_page_and_unspear(char *page_buffer, GlobalAddress page_addr,
@@ -359,7 +357,7 @@ private:
                               GlobalAddress lock_addr, bool is_SMO,
                               CoroContext *cxt, int coro_id, bool async);
   bool spear_and_read_page(char *page_buffer, GlobalAddress page_addr,
-                          int page_size, uint64_t *cas_buffer,
+                          int page_size, uint64_t *buf,
                           GlobalAddress lock_addr, bool is_SMO,
                           CoroContext *cxt, int coro_id, bool from_IDU=false);
 #endif

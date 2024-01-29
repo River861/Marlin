@@ -283,6 +283,40 @@ void DSM::write_faa_sync(RdmaOpRegion &write_ror, RdmaOpRegion &faa_ror,
   }
 }
 
+void DSM::read_faa(RdmaOpRegion &read_ror, RdmaOpRegion &faa_ror,
+                    uint64_t add_val, bool signal, CoroContext *ctx) {
+  int node_id;
+  {
+    GlobalAddress gaddr;
+    gaddr.val = read_ror.dest;
+    node_id = gaddr.nodeID;
+
+    fill_keys_dest(read_ror, gaddr, read_ror.is_on_chip);
+  }
+  {
+    GlobalAddress gaddr;
+    gaddr.val = faa_ror.dest;
+
+    fill_keys_dest(faa_ror, gaddr, faa_ror.is_on_chip);
+  }
+  if (ctx == nullptr) {
+    rdmaReadFaa(iCon->data[0][node_id], read_ror, faa_ror, add_val, signal);
+  } else {
+    rdmaReadFaa(iCon->data[0][node_id], read_ror, faa_ror, add_val, true,
+                ctx->coro_id);
+    (*ctx->yield)(*ctx->master);
+  }
+}
+
+void DSM::read_faa_sync(RdmaOpRegion &read_ror, RdmaOpRegion &faa_ror,
+                         uint64_t add_val, CoroContext *ctx) {
+  read_faa(read_ror, faa_ror, add_val, true, ctx);
+  if (ctx == nullptr) {
+    ibv_wc wc;
+    pollWithCQ(iCon->cq, 1, &wc);
+  }
+}
+
 void DSM::write_cas(RdmaOpRegion &write_ror, RdmaOpRegion &cas_ror,
                     uint64_t equal, uint64_t val, bool signal,
                     CoroContext *ctx) {

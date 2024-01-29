@@ -52,6 +52,11 @@ public:
                  CoroContext *ctx = nullptr);
   void write_faa_sync(RdmaOpRegion &write_ror, RdmaOpRegion &faa_ror,
                       uint64_t add_val, CoroContext *ctx = nullptr);
+  void read_faa(RdmaOpRegion &read_ror, RdmaOpRegion &faa_ror,
+                uint64_t add_val, bool signal = true,
+                CoroContext *ctx = nullptr);
+  void read_faa_sync(RdmaOpRegion &read_ror, RdmaOpRegion &faa_ror,
+                     uint64_t add_val, CoroContext *ctx = nullptr);
 
   void write_cas(RdmaOpRegion &write_ror, RdmaOpRegion &cas_ror,
                  uint64_t equal, uint64_t val, bool signal = true,

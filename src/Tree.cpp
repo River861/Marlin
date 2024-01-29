@@ -301,20 +301,58 @@ inline void Tree::unlock_addr(GlobalAddress lock_addr, uint64_t tag,
 }
 
 #ifdef TREE_ENABLE_MARLIN
-inline bool Tree::try_spear_addr(GlobalAddress lock_addr, bool is_SMO,
-                                 uint64_t *buf, CoroContext *cxt, int coro_id, bool from_IDU) {
+inline void Tree::unspear_addr(GlobalAddress lock_addr, bool is_SMO, uint64_t *buf,
+                    CoroContext *cxt, int coro_id, bool async) {
+  bool hand_over_other = can_hand_over(lock_addr);
+  if (hand_over_other) {
+    releases_local_lock(lock_addr);
+    return;
+  }
+
+#ifdef CONFIG_ENABLE_EMBEDDING_LOCK
+  if (async) {
+    dsm->faa(lock_addr, is_SMO ? SMO_X : -1, buf, false, cxt);
+  } else {
+    dsm->faa_sync(lock_addr, is_SMO ? SMO_X : -1, buf, cxt);
+  }
+#else
+  if (async) {
+    dsm->faa_dm(lock_addr, is_SMO ? SMO_X : -1, buf, false, cxt);
+  } else {
+    dsm->faa_dm_sync(lock_addr, is_SMO ? SMO_X : -1, buf, cxt);
+  }
+#endif
+
+  releases_local_lock(lock_addr);
+}
+
+bool Tree::spear_and_read_page(char *page_buffer, GlobalAddress page_addr,
+                               int page_size, uint64_t *buf,
+                               GlobalAddress lock_addr, bool is_SMO,
+                               CoroContext *cxt, int coro_id, bool from_IDU) {
   bool hand_over = acquire_local_lock(lock_addr, cxt, coro_id);
   if (hand_over) {
     return true;
   }
 
   try_lock[dsm->getMyThreadID()] ++;
-  int64_t SMO_delta = from_IDU ? (-SMO_X-1) : -SMO_X;
+  RdmaOpRegion rs[2];
+  rs[0].source = (uint64_t)page_buffer;
+  rs[0].dest = page_addr.to_uint64();
+  rs[0].size = page_size;
+  rs[0].is_on_chip = false;
+
+  rs[1].source = (uint64_t)buf;
+  rs[1].dest = lock_addr.to_uint64();
+  rs[1].size = sizeof(uint64_t);
 #ifdef CONFIG_ENABLE_EMBEDDING_LOCK
-  dsm->faa_sync(lock_addr, is_SMO ? SMO_delta : 1, buf, cxt);
+  rs[1].is_on_chip = false;
 #else
-  dsm->faa_dm_sync(lock_addr, is_SMO ? SMO_delta : 1, buf, cxt);
+  rs[1].is_on_chip = true;
 #endif
+  int64_t SMO_delta = from_IDU ? (-SMO_X-1) : -SMO_X;
+  dsm->read_faa_sync(rs[0], rs[1], is_SMO ? SMO_delta : 1, cxt);
+
   auto ret = *(int64_t *)buf;
   if (is_SMO) {
     if (ret == 0) return true;
@@ -342,43 +380,6 @@ retry:
     }
   }
   goto retry;
-}
-
-inline void Tree::unspear_addr(GlobalAddress lock_addr, bool is_SMO, uint64_t *buf,
-                    CoroContext *cxt, int coro_id, bool async) {
-  bool hand_over_other = can_hand_over(lock_addr);
-  if (hand_over_other) {
-    releases_local_lock(lock_addr);
-    return;
-  }
-
-#ifdef CONFIG_ENABLE_EMBEDDING_LOCK
-  if (async) {
-    dsm->faa(lock_addr, is_SMO ? SMO_X : -1, buf, false, cxt);
-  } else {
-    dsm->faa_sync(lock_addr, is_SMO ? SMO_X : -1, buf, cxt);
-  }
-#else
-  if (async) {
-    dsm->faa_dm(lock_addr, is_SMO ? SMO_X : -1, buf, false, cxt);
-  } else {
-    dsm->faa_dm_sync(lock_addr, is_SMO ? SMO_X : -1, buf, cxt);
-  }
-#endif
-
-  releases_local_lock(lock_addr);
-}
-
-bool Tree::spear_and_read_page(char *page_buffer, GlobalAddress page_addr,
-                               int page_size, uint64_t *cas_buffer,
-                               GlobalAddress lock_addr, bool is_SMO,
-                               CoroContext *cxt, int coro_id, bool from_IDU) {
-  bool ret = try_spear_addr(lock_addr, is_SMO, cas_buffer, cxt, coro_id, from_IDU);
-  if (!ret) return false;
-
-  dsm->read_sync(page_buffer, page_addr, page_size, cxt);
-  pattern[dsm->getMyThreadID()][page_addr.nodeID]++;
-  return true;
 }
 
 void Tree::write_page_and_unspear(char *page_buffer, GlobalAddress page_addr,
@@ -1275,8 +1276,6 @@ cas_retry:
     }
     if (is_insert) { // write key and unlock
       write_page_and_unspear(update_pos, key_addr, define::keyLen, cas_buffer, lock_addr, false, cxt, coro_id, false);
-      // dsm->write_sync(update_pos, key_addr, define::keyLen, cxt);
-      // unspear_addr(lock_addr, false, cas_buffer, cxt, coro_id, false);
     }
     else {  // unlock
       unspear_addr(lock_addr, false, cas_buffer, cxt, coro_id, false);
@@ -1344,8 +1343,6 @@ cas_retry:
 #ifdef TREE_ENABLE_MARLIN
   write_page_and_unspear(page_buffer + sizeof(uint64_t), page_addr + sizeof(uint64_t), kLeafPageSize - sizeof(uint64_t),
                          cas_buffer, lock_addr, true, cxt, coro_id, true);
-  // dsm->write_sync(page_buffer + sizeof(uint64_t), page_addr + sizeof(uint64_t), kLeafPageSize - sizeof(uint64_t), cxt);
-  // unspear_addr(lock_addr, true, cas_buffer, cxt, coro_id, true);
 #else
   write_page_and_unlock(page_buffer, page_addr, kLeafPageSize, cas_buffer, lock_addr, tag, cxt, coro_id, true);
 #endif

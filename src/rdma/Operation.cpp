@@ -489,6 +489,39 @@ bool rdmaWriteFaa(ibv_qp *qp, const RdmaOpRegion &write_ror,
   return true;
 }
 
+bool rdmaReadFaa(ibv_qp *qp, const RdmaOpRegion &read_ror,
+                  const RdmaOpRegion &faa_ror, uint64_t add_val,
+                  bool isSignaled, uint64_t wrID) {
+
+  struct ibv_sge sg[2];
+  struct ibv_send_wr wr[2];
+  struct ibv_send_wr *wrBad;
+
+  fillSgeWr(sg[0], wr[0], read_ror.source, read_ror.size, read_ror.lkey);
+  wr[0].opcode = IBV_WR_RDMA_READ;
+  wr[0].wr.rdma.remote_addr = read_ror.dest;
+  wr[0].wr.rdma.rkey = read_ror.remoteRKey;
+  wr[0].next = &wr[1];
+
+  fillSgeWr(sg[1], wr[1], faa_ror.source, 8, faa_ror.lkey);
+  wr[1].opcode = IBV_WR_ATOMIC_FETCH_AND_ADD;
+  wr[1].wr.atomic.remote_addr = faa_ror.dest;
+  wr[1].wr.atomic.rkey = faa_ror.remoteRKey;
+  wr[1].wr.atomic.compare_add = add_val;
+  wr[1].wr_id = wrID;
+  // wr[1].send_flags |= IBV_SEND_FENCE;
+  if (isSignaled) {
+    wr[1].send_flags |= IBV_SEND_SIGNALED;
+  }
+
+  if (ibv_post_send(qp, &wr[0], &wrBad)) {
+    Debug::notifyError("Send with Read Faa failed.");
+    sleep(10);
+    return false;
+  }
+  return true;
+}
+
 bool rdmaWriteCas(ibv_qp *qp, const RdmaOpRegion &write_ror,
                   const RdmaOpRegion &cas_ror, uint64_t compare, uint64_t swap,
                   bool isSignaled, uint64_t wrID) {
