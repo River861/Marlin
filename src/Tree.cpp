@@ -1123,7 +1123,8 @@ void Tree::internal_page_store(GlobalAddress page_addr, const Key &k,
 bool Tree::leaf_page_store(GlobalAddress page_addr, const Key &k,
                            Value v, GlobalAddress root, int level,
                            CoroContext *cxt, int coro_id, bool from_cache) {
-
+  Value old_v = v;
+re_insert:
   uint64_t lock_index =
       CityHash64((char *)&page_addr, sizeof(page_addr)) % define::kNumOfLock;
 
@@ -1249,6 +1250,10 @@ bool Tree::leaf_page_store(GlobalAddress page_addr, const Key &k,
     auto cas_buf = dsm->get_rbuf(coro_id).get_cas_buffer();
 cas_retry:
     if (!dsm->cas_sync(ptr_addr, old_v, v, cas_buf, cxt)) {
+      if (is_insert) {
+        v = old_v;
+        goto re_insert;
+      }
       old_v = *(Value *)cas_buf;
       goto cas_retry;
     }

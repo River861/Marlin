@@ -33,7 +33,7 @@
 
 // DEBUG-VL(variable-length)
 #define ENABLE_VAR_SIZE_KV
-// #define TREE_ENABLE_MARLIN   // !!!NOTE: should be turned on together with ENABLE_VAR_SIZE_KV and RDWC
+#define TREE_ENABLE_MARLIN   // !!!NOTE: should be turned on together with ENABLE_VAR_SIZE_KV and RDWC
 
 #define LATENCY_WINDOWS 100000
 #define PACKED_ADDR_ALIGN_BIT 8
