@@ -370,8 +370,8 @@ inline void Tree::unspear_addr(GlobalAddress lock_addr, bool is_SMO, uint64_t *b
 void Tree::spear_and_read_page(char *page_buffer, GlobalAddress page_addr,
                                int page_size, uint64_t *cas_buffer,
                                GlobalAddress lock_addr, bool is_SMO,
-                               CoroContext *cxt, int coro_id) {
-  try_spear_addr(lock_addr, is_SMO, cas_buffer, cxt, coro_id);
+                               CoroContext *cxt, int coro_id, bool from_IDU) {
+  try_spear_addr(lock_addr, is_SMO, cas_buffer, cxt, coro_id, from_IDU);
 
   dsm->read_sync(page_buffer, page_addr, page_size, cxt);
   pattern[dsm->getMyThreadID()][page_addr.nodeID]++;
@@ -1275,6 +1275,11 @@ cas_retry:
   }
 
   assert(need_split);
+#ifdef TREE_ENABLE_MARLIN
+  spear_and_read_page(page_buffer, page_addr, kLeafPageSize, cas_buffer,
+                     lock_addr, true, cxt, coro_id, true);
+#endif
+
   std::sort(
       page->records, page->records + kLeafCardinality,
       [](const LeafEntry &a, const LeafEntry &b) { return a.key < b.key; });
@@ -1316,7 +1321,6 @@ cas_retry:
   page->set_consistent();
 
 #ifdef TREE_ENABLE_MARLIN
-  try_spear_addr(lock_addr, true, cas_buffer, cxt, coro_id, true);
   write_page_and_unspear(page_buffer, page_addr, kLeafPageSize, cas_buffer, lock_addr, true, cxt, coro_id, true);
 #else
   write_page_and_unlock(page_buffer, page_addr, kLeafPageSize, cas_buffer, lock_addr, tag, cxt, coro_id, true);
