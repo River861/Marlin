@@ -1152,6 +1152,15 @@ re_insert:
   if (!spear_and_read_page(page_buffer, page_addr, kLeafPageSize, cas_buffer, lock_addr, false, cxt, coro_id)) {
     // is spliting
     unspear_addr(lock_addr, false, cas_buffer, cxt, coro_id, true);
+waiting:
+#ifdef CONFIG_ENABLE_EMBEDDING_LOCK
+    dsm->read_sync((char *)cas_buffer, lock_addr, sizeof(uint64_t), cxt);
+#else
+    dsm->read_dm_sync((char *)cas_buffer, lock_addr, sizeof(uint64_t), cxt);
+#endif
+    if (*(int64_t *)cas_buffer < -SMO_T) {
+      goto waiting;
+    }
     v = indirect_v;
     goto re_insert;
   }
