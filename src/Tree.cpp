@@ -309,7 +309,7 @@ inline bool Tree::try_spear_addr(GlobalAddress lock_addr, bool is_SMO,
   }
 
   try_lock[dsm->getMyThreadID()] ++;
-  bool SMO_delta = from_IDU ? -SMO_X+1 : -SMO_X;
+  int64_t SMO_delta = from_IDU ? -SMO_X+1 : -SMO_X;
 #ifdef CONFIG_ENABLE_EMBEDDING_LOCK
   dsm->faa_boundary_sync(lock_addr, is_SMO ? SMO_delta : 1, buf, 63ULL, cxt);
 #else
@@ -1282,7 +1282,7 @@ cas_retry:
 #ifdef TREE_ENABLE_MARLIN
   if (!spear_and_read_page(page_buffer, page_addr, kLeafPageSize, cas_buffer, lock_addr, true, cxt, coro_id, true)) {
     // is spliting
-    unspear_addr(lock_addr, true, cas_buffer, cxt, coro_id, true, true);
+    unspear_addr(lock_addr, true, cas_buffer, cxt, coro_id, true);
     v = indirect_v;
     goto re_insert;
   }
@@ -1329,7 +1329,7 @@ cas_retry:
   page->set_consistent();
 
 #ifdef TREE_ENABLE_MARLIN
-  write_page_and_unspear(page_buffer, page_addr, kLeafPageSize, cas_buffer, lock_addr, true, cxt, coro_id, true, true);
+  write_page_and_unspear(page_buffer, page_addr, kLeafPageSize, cas_buffer, lock_addr, true, cxt, coro_id, true);
 #else
   write_page_and_unlock(page_buffer, page_addr, kLeafPageSize, cas_buffer, lock_addr, tag, cxt, coro_id, true);
 #endif
