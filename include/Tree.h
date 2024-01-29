@@ -349,26 +349,28 @@ private:
   void unlock_addr(GlobalAddress lock_addr, uint64_t tag, uint64_t *buf,
                    CoroContext *cxt, int coro_id, bool async);
 
+#ifdef TREE_ENABLE_MARLIN
   bool try_spear_addr(GlobalAddress lock_addr, bool is_SMO, uint64_t *buf,
                       CoroContext *cxt, int coro_id, bool from_IDU=false);
   void unspear_addr(GlobalAddress lock_addr, bool is_SMO, uint64_t *buf,
                     CoroContext *cxt, int coro_id, bool async);
+  void write_page_and_unspear(char *page_buffer, GlobalAddress page_addr,
+                              int page_size, uint64_t *cas_buffer,
+                              GlobalAddress lock_addr, bool is_SMO,
+                              CoroContext *cxt, int coro_id, bool async);
+  void spear_and_read_page(char *page_buffer, GlobalAddress page_addr,
+                          int page_size, uint64_t *cas_buffer,
+                          GlobalAddress lock_addr, bool is_SMO,
+                          CoroContext *cxt, int coro_id);
+#endif
 
   void write_page_and_unlock(char *page_buffer, GlobalAddress page_addr,
                              int page_size, uint64_t *cas_buffer,
                              GlobalAddress lock_addr, uint64_t tag,
                              CoroContext *cxt, int coro_id, bool async);
-  void write_page_and_unspear(char *page_buffer, GlobalAddress page_addr,
-                              int page_size, uint64_t *cas_buffer,
-                              GlobalAddress lock_addr, bool is_SMO,
-                              CoroContext *cxt, int coro_id, bool async);
   void lock_and_read_page(char *page_buffer, GlobalAddress page_addr,
                           int page_size, uint64_t *cas_buffer,
                           GlobalAddress lock_addr, uint64_t tag,
-                          CoroContext *cxt, int coro_id);
-  void spear_and_read_page(char *page_buffer, GlobalAddress page_addr,
-                          int page_size, uint64_t *cas_buffer,
-                          GlobalAddress lock_addr, bool is_SMO,
                           CoroContext *cxt, int coro_id);
 
   bool page_search(GlobalAddress page_addr, const Key &k, SearchResult &result,

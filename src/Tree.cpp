@@ -300,6 +300,7 @@ inline void Tree::unlock_addr(GlobalAddress lock_addr, uint64_t tag,
   releases_local_lock(lock_addr);
 }
 
+#ifdef TREE_ENABLE_MARLIN
 inline bool Tree::try_spear_addr(GlobalAddress lock_addr, bool is_SMO,
                                  uint64_t *buf, CoroContext *cxt, int coro_id, bool from_IDU) {
   bool hand_over = acquire_local_lock(lock_addr, cxt, coro_id);
@@ -366,41 +367,14 @@ inline void Tree::unspear_addr(GlobalAddress lock_addr, bool is_SMO, uint64_t *b
   releases_local_lock(lock_addr);
 }
 
-void Tree::write_page_and_unlock(char *page_buffer, GlobalAddress page_addr,
-                                 int page_size, uint64_t *cas_buffer,
-                                 GlobalAddress lock_addr, uint64_t tag,
-                                 CoroContext *cxt, int coro_id, bool async) {
-  bool hand_over_other = can_hand_over(lock_addr);
-  if (hand_over_other) {
-    dsm->write_sync(page_buffer, page_addr, page_size, cxt);
-    releases_local_lock(lock_addr);
-    return;
-  }
+void Tree::spear_and_read_page(char *page_buffer, GlobalAddress page_addr,
+                               int page_size, uint64_t *cas_buffer,
+                               GlobalAddress lock_addr, bool is_SMO,
+                               CoroContext *cxt, int coro_id) {
+  try_spear_addr(lock_addr, is_SMO, cas_buffer, cxt, coro_id);
 
-  RdmaOpRegion rs[2];
-  rs[0].source = (uint64_t)page_buffer;
-  rs[0].dest = page_addr.to_uint64();
-  rs[0].size = page_size;
-  rs[0].is_on_chip = false;
-
-  auto cas_buf = dsm->get_rbuf(coro_id).get_cas_buffer();
-  *cas_buf = 0;
-  rs[1].source = (uint64_t)cas_buf;
-  rs[1].dest = lock_addr.to_uint64();
-  rs[1].size = sizeof(uint64_t);
-#ifdef CONFIG_ENABLE_EMBEDDING_LOCK
-  rs[1].is_on_chip = false;
-#else
-  rs[1].is_on_chip = true;
-#endif
-
-  if (async) {
-    dsm->write_batch(rs, 2, false);
-  } else {
-    dsm->write_batch_sync(rs, 2, cxt);
-  }
-
-  releases_local_lock(lock_addr);
+  dsm->read_sync(page_buffer, page_addr, page_size, cxt);
+  pattern[dsm->getMyThreadID()][page_addr.nodeID]++;
 }
 
 void Tree::write_page_and_unspear(char *page_buffer, GlobalAddress page_addr,
@@ -438,6 +412,44 @@ void Tree::write_page_and_unspear(char *page_buffer, GlobalAddress page_addr,
 
   releases_local_lock(lock_addr);
 }
+#endif
+
+void Tree::write_page_and_unlock(char *page_buffer, GlobalAddress page_addr,
+                                 int page_size, uint64_t *cas_buffer,
+                                 GlobalAddress lock_addr, uint64_t tag,
+                                 CoroContext *cxt, int coro_id, bool async) {
+  bool hand_over_other = can_hand_over(lock_addr);
+  if (hand_over_other) {
+    dsm->write_sync(page_buffer, page_addr, page_size, cxt);
+    releases_local_lock(lock_addr);
+    return;
+  }
+
+  RdmaOpRegion rs[2];
+  rs[0].source = (uint64_t)page_buffer;
+  rs[0].dest = page_addr.to_uint64();
+  rs[0].size = page_size;
+  rs[0].is_on_chip = false;
+
+  auto cas_buf = dsm->get_rbuf(coro_id).get_cas_buffer();
+  *cas_buf = 0;
+  rs[1].source = (uint64_t)cas_buf;
+  rs[1].dest = lock_addr.to_uint64();
+  rs[1].size = sizeof(uint64_t);
+#ifdef CONFIG_ENABLE_EMBEDDING_LOCK
+  rs[1].is_on_chip = false;
+#else
+  rs[1].is_on_chip = true;
+#endif
+
+  if (async) {
+    dsm->write_batch(rs, 2, false);
+  } else {
+    dsm->write_batch_sync(rs, 2, cxt);
+  }
+
+  releases_local_lock(lock_addr);
+}
 
 void Tree::lock_and_read_page(char *page_buffer, GlobalAddress page_addr,
                               int page_size, uint64_t *cas_buffer,
@@ -449,15 +461,6 @@ void Tree::lock_and_read_page(char *page_buffer, GlobalAddress page_addr,
   pattern[dsm->getMyThreadID()][page_addr.nodeID]++;
 }
 
-void Tree::spear_and_read_page(char *page_buffer, GlobalAddress page_addr,
-                               int page_size, uint64_t *cas_buffer,
-                               GlobalAddress lock_addr, bool is_SMO,
-                               CoroContext *cxt, int coro_id) {
-  try_spear_addr(lock_addr, is_SMO, cas_buffer, cxt, coro_id);
-
-  dsm->read_sync(page_buffer, page_addr, page_size, cxt);
-  pattern[dsm->getMyThreadID()][page_addr.nodeID]++;
-}
 
 void Tree::lock_bench(const Key &k, CoroContext *cxt, int coro_id) {
   uint64_t lock_index = CityHash64((char *)&k, sizeof(k)) % define::kNumOfLock;
