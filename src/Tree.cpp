@@ -341,8 +341,6 @@ retry:
       if (ret >= 1) return true;
     }
   }
-  // std::cout << "FUCK-2: " << lock_addr;
-  // printf(" is_SMO=%d from_IDU=%d ret=%d SMO_X=%d\n", (int)is_SMO, (int)from_IDU, ret, -SMO_X);
   goto retry;
 }
 
@@ -1153,7 +1151,6 @@ re_insert:
   if (!(spear_and_read_page(page_buffer, page_addr, kLeafPageSize, cas_buffer, lock_addr, false, cxt, coro_id))) {
     // is spliting
     unspear_addr(lock_addr, false, cas_buffer, cxt, coro_id, false);
-    // return true;
 waiting:
 #ifdef CONFIG_ENABLE_EMBEDDING_LOCK
     dsm->read_sync((char *)cas_buffer, lock_addr, sizeof(uint64_t), cxt);
@@ -1276,10 +1273,10 @@ cas_retry:
       old_v = *(Value *)cas_buffer;
       goto cas_retry;
     }
-    if (is_insert) { // write key and unlock  TODO: FENCE不管用？
-      // write_page_and_unspear(update_pos, key_addr, define::keyLen, cas_buffer, lock_addr, false, cxt, coro_id, false);
-      dsm->write_sync(update_pos, key_addr, define::keyLen, cxt);
-      unspear_addr(lock_addr, false, cas_buffer, cxt, coro_id, false);
+    if (is_insert) { // write key and unlock
+      write_page_and_unspear(update_pos, key_addr, define::keyLen, cas_buffer, lock_addr, false, cxt, coro_id, false);
+      // dsm->write_sync(update_pos, key_addr, define::keyLen, cxt);
+      // unspear_addr(lock_addr, false, cas_buffer, cxt, coro_id, false);
     }
     else {  // unlock
       unspear_addr(lock_addr, false, cas_buffer, cxt, coro_id, false);
@@ -1299,7 +1296,6 @@ cas_retry:
   if (!(spear_and_read_page(page_buffer, page_addr, kLeafPageSize, cas_buffer, lock_addr, true, cxt, coro_id, true))) {
     // is spliting
     unspear_addr(lock_addr, true, cas_buffer, cxt, coro_id, false);
-    // return true;
     v = indirect_v;
     goto re_insert;
   }
@@ -1319,13 +1315,6 @@ cas_retry:
 
   int m = cnt / 2;
   split_key = page->records[m].key;
-  // if (split_key <= page->hdr.lowest) {
-  //   std::cout << "FUCK: split_key=" << key2int(split_key) << " lowest=" << key2int(page->hdr.lowest) << " cnt=" << cnt << std::endl;
-  //   for (int i = 0; i < cnt; ++ i) {
-  //     std::cout << key2int(page->records[i].key) << " ";
-  //   }
-  //   std::cout << std::endl;
-  // }
   assert(split_key > page->hdr.lowest);
   assert(split_key < page->hdr.highest);
 
@@ -1353,10 +1342,10 @@ cas_retry:
   page->set_consistent();
 
 #ifdef TREE_ENABLE_MARLIN
-  // TODO: FENCE不管用？
-  // write_page_and_unspear(page_buffer, page_addr, kLeafPageSize, cas_buffer, lock_addr, true, cxt, coro_id, true);
-  dsm->write_sync(page_buffer + sizeof(uint64_t), page_addr + sizeof(uint64_t), kLeafPageSize - sizeof(uint64_t), cxt);
-  unspear_addr(lock_addr, true, cas_buffer, cxt, coro_id, true);
+  write_page_and_unspear(page_buffer + sizeof(uint64_t), page_addr + sizeof(uint64_t), kLeafPageSize - sizeof(uint64_t),
+                         cas_buffer, lock_addr, true, cxt, coro_id, true);
+  // dsm->write_sync(page_buffer + sizeof(uint64_t), page_addr + sizeof(uint64_t), kLeafPageSize - sizeof(uint64_t), cxt);
+  // unspear_addr(lock_addr, true, cas_buffer, cxt, coro_id, true);
 #else
   write_page_and_unlock(page_buffer, page_addr, kLeafPageSize, cas_buffer, lock_addr, tag, cxt, coro_id, true);
 #endif
