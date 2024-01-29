@@ -1277,7 +1277,9 @@ cas_retry:
       goto cas_retry;
     }
     if (is_insert) { // write key and unlock  TODO
-      write_page_and_unspear(update_pos, key_addr, define::keyLen, cas_buffer, lock_addr, false, cxt, coro_id, false);
+      // write_page_and_unspear(update_pos, key_addr, define::keyLen, cas_buffer, lock_addr, false, cxt, coro_id, false);
+      dsm->write_sync(update_pos, key_addr, define::keyLen, cxt);
+      unspear_addr(lock_addr, false, cas_buffer, cxt, coro_id, false);
     }
     else {  // unlock
       unspear_addr(lock_addr, false, cas_buffer, cxt, coro_id, false);
