@@ -340,7 +340,7 @@ retry:
       if (ret >= 1) return true;
     }
   }
-  printf("FUCK: is_SMO=%d ret=%d SMO_X=%d\n", (int)is_SMO, ret, -SMO_X);
+  if(!is_SMO) printf("FUCK: is_SMO=%d ret=%d SMO_X=%d\n", (int)is_SMO, ret, -SMO_X);
   goto retry;
 }
 
