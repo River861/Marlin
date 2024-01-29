@@ -318,11 +318,11 @@ inline bool Tree::try_spear_addr(GlobalAddress lock_addr, bool is_SMO,
   auto ret = *(int64_t *)buf;
   if (is_SMO) {
     if (ret == 0) return true;
-    if (ret < -SMO_T) return false;  // already locked by SMO
   }
   else {
     if (ret >= 0) return true;
   }
+  if (ret < -SMO_T) return false;  // already locked by SMO
 
   {
 retry:
@@ -340,7 +340,7 @@ retry:
       if (ret >= 1) return true;
     }
   }
-  if(is_SMO) printf("FUCK: is_SMO=%d ret=%d SMO_X=%d\n", (int)is_SMO, ret, -SMO_X);
+  // if(is_SMO) printf("FUCK: is_SMO=%d ret=%d SMO_X=%d\n", (int)is_SMO, ret, -SMO_X);
   goto retry;
 }
 
@@ -1149,8 +1149,12 @@ re_insert:
   assert(tag != 0);
 
 #ifdef TREE_ENABLE_MARLIN
-  spear_and_read_page(page_buffer, page_addr, kLeafPageSize, cas_buffer,
-                     lock_addr, false, cxt, coro_id);
+  if (!spear_and_read_page(page_buffer, page_addr, kLeafPageSize, cas_buffer, lock_addr, false, cxt, coro_id)) {
+    // is spliting
+    unspear_addr(lock_addr, false, cas_buffer, cxt, coro_id, true);
+    v = indirect_v;
+    goto re_insert;
+  }
 #else
   lock_and_read_page(page_buffer, page_addr, kLeafPageSize, cas_buffer,
                      lock_addr, tag, cxt, coro_id);
