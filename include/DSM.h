@@ -76,6 +76,15 @@ public:
   bool cas_mask_sync(GlobalAddress gaddr, uint64_t equal, uint64_t val,
                      uint64_t *rdma_buffer, uint64_t mask = ~(0ull));
 
+  void faa(GlobalAddress gaddr, uint64_t add_val,
+           uint64_t *rdma_buffer, bool signal = true, CoroContext *ctx = nullptr);
+  void faa_sync(GlobalAddress gaddr, uint64_t add_val,
+                uint64_t *rdma_buffer, CoroContext *ctx = nullptr);
+  void faa_dm(GlobalAddress gaddr, uint64_t add_val,
+              uint64_t *rdma_buffer, bool signal = true, CoroContext *ctx = nullptr);
+  void faa_dm_sync(GlobalAddress gaddr, uint64_t add_val,
+                   uint64_t *rdma_buffer, CoroContext *ctx = nullptr);
+
   void faa_boundary(GlobalAddress gaddr, uint64_t add_val,
                     uint64_t *rdma_buffer, uint64_t mask = 63,
                     bool signal = true, CoroContext *ctx = nullptr);

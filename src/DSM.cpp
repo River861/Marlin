@@ -273,6 +273,7 @@ void DSM::write_faa(RdmaOpRegion &write_ror, RdmaOpRegion &faa_ror,
     (*ctx->yield)(*ctx->master);
   }
 }
+
 void DSM::write_faa_sync(RdmaOpRegion &write_ror, RdmaOpRegion &faa_ror,
                          uint64_t add_val, CoroContext *ctx) {
   write_faa(write_ror, faa_ror, add_val, true, ctx);
@@ -399,6 +400,58 @@ bool DSM::cas_mask_sync(GlobalAddress gaddr, uint64_t equal, uint64_t val,
   pollWithCQ(iCon->cq, 1, &wc);
 
   return (equal & mask) == (*rdma_buffer & mask);
+}
+
+void DSM::faa(GlobalAddress gaddr, uint64_t add_val,
+              uint64_t *rdma_buffer, bool signal, CoroContext *ctx) {
+  if (ctx == nullptr) {
+    rdmaFetchAndAdd(iCon->data[0][gaddr.nodeID], (uint64_t)rdma_buffer,
+                    remoteInfo[gaddr.nodeID].dsmBase + gaddr.offset,
+                    add_val, iCon->cacheLKey,
+                    remoteInfo[gaddr.nodeID].dsmRKey[0], signal);
+  } else {
+    rdmaFetchAndAdd(iCon->data[0][gaddr.nodeID], (uint64_t)rdma_buffer,
+                    remoteInfo[gaddr.nodeID].dsmBase + gaddr.offset,
+                    add_val, iCon->cacheLKey,
+                    remoteInfo[gaddr.nodeID].dsmRKey[0], true,
+                    ctx->coro_id);
+    (*ctx->yield)(*ctx->master);
+  }
+}
+
+void DSM::faa_sync(GlobalAddress gaddr, uint64_t add_val,
+              uint64_t *rdma_buffer, CoroContext *ctx) {
+  faa(gaddr, add_val, rdma_buffer, true, ctx);
+  if (ctx == nullptr) {
+    ibv_wc wc;
+    pollWithCQ(iCon->cq, 1, &wc);
+  }
+}
+
+void DSM::faa_dm(GlobalAddress gaddr, uint64_t add_val,
+                 uint64_t *rdma_buffer, bool signal, CoroContext *ctx) {
+  if (ctx == nullptr) {
+    rdmaFetchAndAdd(iCon->data[0][gaddr.nodeID], (uint64_t)rdma_buffer,
+                    remoteInfo[gaddr.nodeID].lockBase + gaddr.offset,
+                    add_val, iCon->cacheLKey,
+                    remoteInfo[gaddr.nodeID].lockRKey[0], signal);
+  } else {
+    rdmaFetchAndAdd(iCon->data[0][gaddr.nodeID], (uint64_t)rdma_buffer,
+                    remoteInfo[gaddr.nodeID].lockBase + gaddr.offset,
+                    add_val, iCon->cacheLKey,
+                    remoteInfo[gaddr.nodeID].lockRKey[0], true,
+                    ctx->coro_id);
+    (*ctx->yield)(*ctx->master);
+  }
+}
+
+void DSM::faa_dm_sync(GlobalAddress gaddr, uint64_t add_val,
+                      uint64_t *rdma_buffer, CoroContext *ctx) {
+  faa_dm(gaddr, add_val, rdma_buffer, true, ctx);
+  if (ctx == nullptr) {
+    ibv_wc wc;
+    pollWithCQ(iCon->cq, 1, &wc);
+  }
 }
 
 void DSM::faa_boundary(GlobalAddress gaddr, uint64_t add_val,

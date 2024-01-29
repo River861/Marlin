@@ -311,9 +311,9 @@ inline bool Tree::try_spear_addr(GlobalAddress lock_addr, bool is_SMO,
   try_lock[dsm->getMyThreadID()] ++;
   int64_t SMO_delta = from_IDU ? (-SMO_X-1) : -SMO_X;
 #ifdef CONFIG_ENABLE_EMBEDDING_LOCK
-  dsm->faa_boundary_sync(lock_addr, is_SMO ? SMO_delta : 1, buf, 64ULL, cxt);
+  dsm->faa_sync(lock_addr, is_SMO ? SMO_delta : 1, buf, cxt);
 #else
-  dsm->faa_dm_boundary_sync(lock_addr, is_SMO ? SMO_delta : 1, buf, 64ULL, cxt);
+  dsm->faa_dm_sync(lock_addr, is_SMO ? SMO_delta : 1, buf, cxt);
 #endif
   auto ret = *(int64_t *)buf;
   if (is_SMO) {
@@ -354,15 +354,15 @@ inline void Tree::unspear_addr(GlobalAddress lock_addr, bool is_SMO, uint64_t *b
 
 #ifdef CONFIG_ENABLE_EMBEDDING_LOCK
   if (async) {
-    dsm->faa_boundary(lock_addr, is_SMO ? SMO_X : -1, buf, 64ULL, false, cxt);
+    dsm->faa(lock_addr, is_SMO ? SMO_X : -1, buf, false, cxt);
   } else {
-    dsm->faa_boundary_sync(lock_addr, is_SMO ? SMO_X : -1, buf, 64ULL, cxt);
+    dsm->faa_sync(lock_addr, is_SMO ? SMO_X : -1, buf, cxt);
   }
 #else
   if (async) {
-    dsm->faa_dm_boundary(lock_addr, is_SMO ? SMO_X : -1, buf, 64ULL, false, cxt);
+    dsm->faa_dm(lock_addr, is_SMO ? SMO_X : -1, buf, false, cxt);
   } else {
-    dsm->faa_dm_boundary_sync(lock_addr, is_SMO ? SMO_X : -1, buf, 64ULL, cxt);
+    dsm->faa_dm_sync(lock_addr, is_SMO ? SMO_X : -1, buf, cxt);
   }
 #endif
 
