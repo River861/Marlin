@@ -32,8 +32,8 @@
 // #define TREE_ENABLE_WRITE_COMBINING
 
 // DEBUG-VL(variable-length)
-#define ENABLE_VAR_SIZE_KV
-#define TREE_ENABLE_MARLIN   // !!!NOTE: should be turned on together with CONFIG_ENABLE_EMBEDDING_LOCK, ENABLE_VAR_SIZE_KV and RDWC
+// #define ENABLE_VAR_SIZE_KV
+// #define TREE_ENABLE_MARLIN   // !!!NOTE: should be turned on together with CONFIG_ENABLE_EMBEDDING_LOCK, ENABLE_VAR_SIZE_KV and RDWC
 
 #define LATENCY_WINDOWS 100000
 #define PACKED_ADDR_ALIGN_BIT 8
