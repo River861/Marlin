@@ -65,8 +65,10 @@ endif()
 
 if(ON_CHIP)
     remove_definitions(-DCONFIG_ENABLE_EMBEDDING_LOCK)
+    add_definitions(-DCONFIG_ENABLE_LOCK_HANDOVER)
 else()
     add_definitions(-DCONFIG_ENABLE_EMBEDDING_LOCK)
+    remove_definitions(-DCONFIG_ENABLE_LOCK_HANDOVER)
 endif()
 
 if(READ_DELEGATION)
