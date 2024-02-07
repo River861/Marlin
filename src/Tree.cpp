@@ -1508,7 +1508,7 @@ inline bool Tree::acquire_local_lock(GlobalAddress lock_addr, CoroContext *cxt,
   auto &node = local_locks[lock_addr.nodeID][lock_addr.offset / 8];
   bool is_local_locked = false;
 
-  uint64_t lock_val = node.ticket_lock.fetch_add(1);  // 通过取值来依次排队, faa返回旧值
+  uint64_t lock_val = node.ticket_lock.fetch_add(1ull);  // 通过取值来依次排队, faa返回旧值
 
   uint32_t ticket = lock_val << 32 >> 32;
   uint32_t current = lock_val >> 32;

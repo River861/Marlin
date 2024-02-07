@@ -48,7 +48,7 @@
 // #define STATIC_ID_FROM_IP
 
 // { app thread
-#define MAX_APP_THREAD 10    // one additional thread for data statistics(main thread)  [CONFIG] 65
+#define MAX_APP_THREAD 8    // one additional thread for data statistics(main thread)  [CONFIG] 65
 
 #define APP_MESSAGE_NR 96
 
