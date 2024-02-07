@@ -1505,7 +1505,7 @@ void Tree::coro_master(CoroYield &yield, int coro_cnt) {
 inline bool Tree::acquire_local_lock(GlobalAddress lock_addr, CoroContext *cxt,
                                      int coro_id) {
 #ifdef CONFIG_ENABLE_LOCK_HANDOVER
-  auto &node = local_locks[lock_addr.nodeID][lock_addr.offset / 8];
+  auto &node = local_locks[lock_addr.nodeID][lock_addr.offset % define::kNumOfLock];
   bool is_local_locked = false;
 
   uint64_t lock_val = node.ticket_lock.fetch_add(1ull);  // 通过取值来依次排队, faa返回旧值
@@ -1539,7 +1539,7 @@ inline bool Tree::acquire_local_lock(GlobalAddress lock_addr, CoroContext *cxt,
 
 inline bool Tree::can_hand_over(GlobalAddress lock_addr) {
 #ifdef CONFIG_ENABLE_LOCK_HANDOVER
-  auto &node = local_locks[lock_addr.nodeID][lock_addr.offset / 8];
+  auto &node = local_locks[lock_addr.nodeID][lock_addr.offset % define::kNumOfLock];
   uint64_t lock_val = node.ticket_lock.load(std::memory_order_relaxed);
 
   uint32_t ticket = lock_val << 32 >> 32;
@@ -1564,7 +1564,7 @@ inline bool Tree::can_hand_over(GlobalAddress lock_addr) {
 
 inline void Tree::releases_local_lock(GlobalAddress lock_addr) {
 #ifdef CONFIG_ENABLE_LOCK_HANDOVER
-  auto &node = local_locks[lock_addr.nodeID][lock_addr.offset / 8];
+  auto &node = local_locks[lock_addr.nodeID][lock_addr.offset % define::kNumOfLock];
 
   node.ticket_lock.fetch_add((1ull << 32));
 #endif
