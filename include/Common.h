@@ -31,7 +31,7 @@
 
 #define MAX_MACHINE 20
 #define MEMORY_NODE_NUM 1
-#define CPU_PHYSICAL_CORE_NUM 72  // [CONFIG] 72
+#define CPU_PHYSICAL_CORE_NUM 8  // [CONFIG] 72
 #define MAX_KEY_SPACE_SIZE 60000000
 // #define KEY_SPACE_LIMIT
 
@@ -48,7 +48,7 @@
 // #define STATIC_ID_FROM_IP
 
 // { app thread
-#define MAX_APP_THREAD 65    // one additional thread for data statistics(main thread)  [CONFIG] 65
+#define MAX_APP_THREAD 8    // one additional thread for data statistics(main thread)  [CONFIG] 65
 
 #define APP_MESSAGE_NR 96
 
@@ -92,7 +92,7 @@ constexpr uint64_t GB = 1024ull * MB;
 constexpr uint16_t kCacheLineSize = 64;
 
 // for remote allocate
-constexpr uint64_t dsmSize    = 64;        // GB  [CONFIG] 64
+constexpr uint64_t dsmSize    = 8;        // GB  [CONFIG] 64
 constexpr uint64_t kChunkSize = 16 * MB;
 
 // for store root pointer
@@ -119,7 +119,7 @@ constexpr uint64_t kNumOfLock = kLockChipMemSize / sizeof(uint64_t);
 constexpr uint64_t kMaxLevelOfTree = 16;
 
 constexpr uint16_t kMaxCoro = MAX_CORO_NUM;
-constexpr uint64_t rdmaBufferSize    = 4;         // GB  [CONFIG] 4
+constexpr uint64_t rdmaBufferSize    = 1;         // GB  [CONFIG] 4
 constexpr int64_t kPerThreadRdmaBuf  = rdmaBufferSize * define::GB / MAX_APP_THREAD;
 constexpr int64_t kPerCoroRdmaBuf = kPerThreadRdmaBuf / kMaxCoro;
 
