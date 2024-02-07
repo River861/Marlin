@@ -111,7 +111,7 @@ public:
     Key key;
   };
   union {
-    Value value;  // !!!NOTE: with ENABLE_VAR_SIZE_KV turned on, the value in this field will be casted into a DataPointer
+    Value value;  // !!!NOTE: with ENABLE_VAR_LEN_KV turned on, the value in this field will be casted into a DataPointer
     uint8_t _val_padding[define::inlineValLen];
   };
   uint8_t r_version : 4;

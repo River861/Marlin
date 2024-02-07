@@ -74,7 +74,7 @@ public:
     return page_buffer + (page_buffer_cur * kPageSize);
   }
 
-#ifdef ENABLE_VAR_SIZE_KV
+#ifdef ENABLE_VAR_LEN_KV
   char *get_block_buffer() {
     block_buffer_cur = (block_buffer_cur + 1) % kBlockBufferCnt;
     return block_buffer + block_buffer_cur * kBufferBlockSize;

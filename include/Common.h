@@ -24,17 +24,6 @@
 // #define CONFIG_ENABLE_EMBEDDING_LOCK
 // #define CONFIG_ENABLE_CRC
 
-// #define TREE_ENABLE_CACHE
-// #define CONFIG_ENABLE_LOCK_HANDOVER
-
-// DEBUG-TREE
-// #define TREE_ENABLE_READ_DELEGATION
-// #define TREE_ENABLE_WRITE_COMBINING
-
-// DEBUG-VL(variable-length)
-// #define ENABLE_VAR_SIZE_KV
-// #define TREE_ENABLE_MARLIN   // !!!NOTE: should be turned on together with CONFIG_ENABLE_EMBEDDING_LOCK, ENABLE_VAR_SIZE_KV and RDWC
-
 #define LATENCY_WINDOWS 100000
 #define PACKED_ADDR_ALIGN_BIT 8
 #define STRUCT_OFFSET(type, field)  (char *)&((type *)(0))->field - (char *)((type *)(0))
@@ -141,7 +130,7 @@ constexpr int kIndexCacheSize = 600;
 // KV
 constexpr uint32_t keyLen = 8;
 constexpr uint32_t simulatedValLen = 8;
-#ifndef ENABLE_VAR_SIZE_KV
+#ifndef ENABLE_VAR_LEN_KV
 constexpr uint32_t inlineValLen = simulatedValLen;
 #else
 constexpr uint32_t inlineValLen = 8;
@@ -185,7 +174,7 @@ constexpr uint32_t internalEntrySize = define::keyLen + 8;
 constexpr uint32_t kInternalPageSize = spanSize * internalEntrySize + headerSize + 13;
 constexpr uint32_t kLeafPageSize     = spanSize * leafEntrySize + headerSize + 11;
 
-#ifdef ENABLE_VAR_SIZE_KV
+#ifdef ENABLE_VAR_LEN_KV
 constexpr uint32_t kBufferBlockSize  = define::dataBlockLen;
 #else
 constexpr uint32_t kBufferBlockSize  = 0;

@@ -17,6 +17,9 @@ option (LONG_TEST_EPOCH "Use big epoch num and long epoch duration" OFF)
 option (SHORT_TEST_EPOCH "Use small epoch num and short epoch duration" OFF)
 option (MIDDLE_TEST_EPOCH "Use middle epoch num and short epoch duration" OFF)
 option (ENABLE_CACHE_EVICTION "Turn on cache-eviction" ON)
+option (ON_CHIP "Enable on-chip locks" ON)
+option (READ_DELEGATION "Turn on read delegation technique" OFF)
+option (WRITE_COMBINING "Turn on write combining technique" OFF)
 
 if(STATIC_MN_IP)
     add_definitions(-DSTATIC_ID_FROM_IP)
@@ -60,20 +63,11 @@ else()
     remove_definitions(-DNEED_CACHE_EVICTION)
 endif()
 
-#On-chip Options
-option (ON_CHIP "Enable on-chip locks" ON)
 if(ON_CHIP)
-    add_definitions(-DCONFIG_ENABLE_LOCK_HANDOVER)
     remove_definitions(-DCONFIG_ENABLE_EMBEDDING_LOCK)
 else()
-    remove_definitions(-DCONFIG_ENABLE_LOCK_HANDOVER)
     add_definitions(-DCONFIG_ENABLE_EMBEDDING_LOCK)
 endif()
-
-#Tree Options
-option (READ_DELEGATION "+ Read delegation" OFF)
-option (WRITE_COMBINING "+ Write combining" OFF)
-# TODO: write options for ENABLE_VAR_SIZE_KV, TREE_ENABLE_MARLIN
 
 if(READ_DELEGATION)
     add_definitions(-DTREE_ENABLE_READ_DELEGATION)
@@ -88,6 +82,11 @@ else()
     add_definitions(-DCONFIG_ENABLE_LOCK_HANDOVER)
     remove_definitions(-DTREE_ENABLE_WRITE_COMBINING)
 endif()
+
+#Tree Options
+# Variable-length KV
+option (ENABLE_VAR_LEN_KV "Turn on the support for variable-length KVs" OFF)
+option (TREE_ENABLE_MARLIN "Turn on the designs of Marlin (ICPP'23)" OFF)
 
 set(INCLUDE_BASE ${PROJECT_SOURCE_DIR}/include)
 include_directories(${INCLUDE_BASE})

@@ -647,7 +647,7 @@ next:
       p = result.slibing;
       goto next;
     }
-#ifdef ENABLE_VAR_SIZE_KV
+#ifdef ENABLE_VAR_LEN_KV
     if (search_res) {
       // read the DataBlock
       auto block_len = ((DataPointer *)&v)->data_len;
@@ -795,7 +795,7 @@ uint64_t Tree::range_query(const Key &from, const Key &to, std::map<Key, Value> 
     }
   }
 
-#ifdef ENABLE_VAR_SIZE_KV
+#ifdef ENABLE_VAR_LEN_KV
   // read DataBlocks via doorbell batching
   std::map<Key, Value> indirect_values;
   std::vector<RdmaOpRegion> kv_rs;
@@ -1203,7 +1203,7 @@ waiting:
 #endif
 
 
-#ifdef ENABLE_VAR_SIZE_KV
+#ifdef ENABLE_VAR_LEN_KV
   {
   // first write a new DataBlock out-of-place
   auto block_buffer = (dsm->get_rbuf(coro_id)).get_block_buffer();
