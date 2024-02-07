@@ -88,6 +88,18 @@ endif()
 option (ENABLE_VAR_LEN_KV "Turn on the support for variable-length KVs" OFF)
 option (TREE_ENABLE_MARLIN "Turn on the designs of Marlin (ICPP'23)" OFF)
 
+if(ENABLE_VAR_LEN_KV)
+    add_definitions(-DENABLE_VAR_LEN_KV)
+else()
+    remove_definitions(-DENABLE_VAR_LEN_KV)
+endif()
+
+if(TREE_ENABLE_MARLIN)
+    add_definitions(-DTREE_ENABLE_MARLIN)
+else()
+    remove_definitions(-DTREE_ENABLE_MARLIN)
+endif()
+
 set(INCLUDE_BASE ${PROJECT_SOURCE_DIR}/include)
 include_directories(${INCLUDE_BASE})
 
