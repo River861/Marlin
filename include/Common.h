@@ -31,7 +31,7 @@
 
 #define MAX_MACHINE 20
 #define MEMORY_NODE_NUM 1
-#define CPU_PHYSICAL_CORE_NUM 8  // [CONFIG] 72
+#define CPU_PHYSICAL_CORE_NUM 10  // [CONFIG] 72
 #define MAX_KEY_SPACE_SIZE 60000000
 // #define KEY_SPACE_LIMIT
 
@@ -48,7 +48,7 @@
 // #define STATIC_ID_FROM_IP
 
 // { app thread
-#define MAX_APP_THREAD 8    // one additional thread for data statistics(main thread)  [CONFIG] 65
+#define MAX_APP_THREAD 10    // one additional thread for data statistics(main thread)  [CONFIG] 65
 
 #define APP_MESSAGE_NR 96
 
