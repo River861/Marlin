@@ -787,16 +787,6 @@ uint64_t Tree::range_query(const Key &from, const Key &to, std::map<Key, Value> 
     }
   }
 
-  for(auto k = from; k < to; k = k + 1) {
-    if (ret.find(k) != ret.end()) {
-      cache_hit[dsm->getMyThreadID()]++;
-    }
-    else {
-      cache_miss[dsm->getMyThreadID()]++;
-      search(k, ret[k], cxt, coro_id);
-    }
-  }
-
 #ifdef ENABLE_VAR_LEN_KV
   // read DataBlocks via doorbell batching
   std::map<Key, Value> indirect_values;
@@ -823,10 +813,12 @@ uint64_t Tree::range_query(const Key &from, const Key &to, std::map<Key, Value> 
 #endif
 
   // FIXME: for simplicity, load uncached innernal nodes according to ret, leveraging the ordered YCSB E
-  cache_hit[dsm->getMyThreadID()] += ret.size();
-  if (ret.size() < key2int(to) - key2int(from)) {
-    for (auto k = from; k < to; k = k + 1) if (ret.find(k) == ret.end()) {
-      cache_miss[dsm->getMyThreadID()] ++;
+  for(auto k = from; k < to; k = k + 1) {
+    if (ret.find(k) != ret.end()) {
+      cache_hit[dsm->getMyThreadID()]++;
+    }
+    else {
+      cache_miss[dsm->getMyThreadID()]++;
       search(k, ret[k], cxt, coro_id);
     }
   }
