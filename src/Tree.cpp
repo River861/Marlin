@@ -712,8 +712,10 @@ uint64_t Tree::range_query(const Key &from, const Key &to, std::map<Key, Value> 
 
   // FIXME: here, we assume all innernal nodes are cached in compute node
   if (result.empty()) {
-    for(auto k = from; k < to; k = k + spanSize) search(k, ret[k], cxt, coro_id);  // load into cache
-    printf("loading cache...");
+    for(auto k = from; k < to; k = k + 1) {
+      cache_miss[dsm->getMyThreadID()] ++;
+      search(k, ret[k], cxt, coro_id);  // load into cache
+    }
     return 0;
   }
 
@@ -819,6 +821,15 @@ uint64_t Tree::range_query(const Key &from, const Key &to, std::map<Key, Value> 
     kv_cnt ++;
   }
 #endif
+
+  // FIXME: for simplicity, load uncached innernal nodes according to ret, leveraging the ordered YCSB E
+  cache_hit[dsm->getMyThreadID()] += ret.size();
+  if (ret.size() < key2int(to) - key2int(from)) {
+    for (auto k = from; k < to; k = k + 1) if (ret.find(k) == ret.end()) {
+      cache_miss[dsm->getMyThreadID()] ++;
+      search(k, ret[k], cxt, coro_id);
+    }
+  }
   return counter;
 }
 
