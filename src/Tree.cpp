@@ -1138,7 +1138,6 @@ void Tree::internal_page_store(GlobalAddress page_addr, const Key &k,
 bool Tree::leaf_page_store(GlobalAddress page_addr, const Key &k,
                            Value v, GlobalAddress root, int level,
                            CoroContext *cxt, int coro_id, bool from_cache) {
-  Value indirect_v = v;
   uint64_t lock_index =
       CityHash64((char *)&page_addr, sizeof(page_addr)) % define::kNumOfLock;
 
@@ -1159,6 +1158,7 @@ bool Tree::leaf_page_store(GlobalAddress page_addr, const Key &k,
   assert(tag != 0);
 
 #ifdef TREE_ENABLE_MARLIN
+  Value indirect_v = v;
 re_insert:
   if (!(spear_and_read_page(page_buffer, page_addr, kLeafPageSize, cas_buffer, lock_addr, false, cxt, coro_id))) {
     // is spliting

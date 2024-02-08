@@ -111,14 +111,6 @@ void thread_load(int id) {
     }
   }
   printf("loader %lu load finish\n", loader_id);
-  // uint64_t end_warm_key = kWarmRatio * kKeySpace;
-  // for (uint64_t i = 1; i < end_warm_key; ++i) {
-  //   if (i % all_thread == my_id) {
-  //     mutex.lock();  // safely insert
-  //     tree->insert(to_key(i), i * 2);
-  //     mutex.unlock();
-  //   }
-  // }
 }
 
 
@@ -128,7 +120,6 @@ void thread_run(int id) {
 
   dsm->registerThread();
 
-  uint64_t all_thread = kThreadCount * dsm->getClusterSize();
   uint64_t my_id = kThreadCount * dsm->getMyNodeID() + id;
 
   printf("I am %lu\n", my_id);
