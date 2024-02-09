@@ -705,7 +705,6 @@ uint64_t Tree::range_query(const Key &from, const Key &to, std::map<Key, Value> 
   const int kParaFetch = 32;
   thread_local std::vector<InternalPage> result;
   thread_local std::vector<GlobalAddress> leaves;
-  int debug_RTT = 0, debug_IOs = 0, debug_cached_nodes = 0;
 
   result.clear();
   leaves.clear();
@@ -721,7 +720,6 @@ uint64_t Tree::range_query(const Key &from, const Key &to, std::map<Key, Value> 
   }
 
   uint64_t counter = 0;
-  debug_cached_nodes += result.size();
   for (auto page : result) {
     auto cnt = page.hdr.last_index + 1;
     auto addr = page.hdr.leftmost_ptr;
@@ -769,7 +767,6 @@ uint64_t Tree::range_query(const Key &from, const Key &to, std::map<Key, Value> 
     dsm->read(range_buffer + kLeafPageSize * (i % kParaFetch), leaves[i],
               kLeafPageSize, true);
     cq_cnt++;
-    debug_IOs ++;
   }
   if (cq_cnt != 0) {
     dsm->poll_rdma_cq(cq_cnt);
@@ -813,7 +810,6 @@ uint64_t Tree::range_query(const Key &from, const Key &to, std::map<Key, Value> 
     kv_cnt ++;
   }
 #endif
-  debug_RTT ++;
 
   // FIXME: for simplicity, load uncached innernal nodes according to ret, leveraging the ordered YCSB E
   for(auto k = from; k < to; k = k + 1) {
@@ -823,10 +819,8 @@ uint64_t Tree::range_query(const Key &from, const Key &to, std::map<Key, Value> 
     else {
       cache_miss[dsm->getMyThreadID()]++;
       search(k, ret[k], cxt, coro_id);
-      debug_RTT ++;
     }
   }
-  printf("FUCK: RTT=%d IOs=%d get_cached_node_num=%d\n", debug_RTT, debug_IOs, debug_cached_nodes);
   return counter;
 }
 
