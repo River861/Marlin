@@ -768,6 +768,7 @@ uint64_t Tree::range_query(const Key &from, const Key &to, std::map<Key, Value> 
               kLeafPageSize, true);
     cq_cnt++;
   }
+  printf("FUCK: IOs=%d\n", cq_cnt);
 
   if (cq_cnt != 0) {
     dsm->poll_rdma_cq(cq_cnt);
