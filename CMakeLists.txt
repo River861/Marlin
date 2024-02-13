@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.10.2 FATAL_ERROR)
-project(Sherman)
+project(Marlin)
 
 #Compiler options
-set(CMAKE_C_FLAGS "-Wall -Wno-deprecated-declarations -Wsign-compare -g")  # -DNDEBUG
-# set(CMAKE_C_FLAGS "-Wall -Wno-deprecated-declarations -Wno-unused-variable -Wno-unused-but-set-variable -Wsign-compare -O3 -g")
+# set(CMAKE_C_FLAGS "-Wall -Wno-deprecated-declarations -Wsign-compare -g")  # -DNDEBUG
+set(CMAKE_C_FLAGS "-Wall -Wno-deprecated-declarations -Wno-unused-variable -Wno-unused-but-set-variable -Wsign-compare -O3 -g")
 set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c++17")
 
 # Link Options
@@ -17,8 +17,8 @@ option (LONG_TEST_EPOCH "Use big epoch num and long epoch duration" OFF)
 option (SHORT_TEST_EPOCH "Use small epoch num and short epoch duration" OFF)
 option (MIDDLE_TEST_EPOCH "Use middle epoch num and short epoch duration" OFF)
 option (ENABLE_CACHE_EVICTION "Turn on cache-eviction" ON)
-option (READ_DELEGATION "Turn on read delegation technique" OFF)
-option (WRITE_COMBINING "Turn on write combining technique" OFF)
+option (READ_DELEGATION "Turn on read delegation technique" ON)
+option (WRITE_COMBINING "Turn on write combining technique" ON)
 option (ON_CHIP "Enable on-chip locks" ON)
 
 if(STATIC_MN_IP)
@@ -86,8 +86,8 @@ endif()
 
 #Tree Options
 # Variable-length KV
-option (ENABLE_VAR_LEN_KV "Turn on the support for variable-length KVs" OFF)
-option (TREE_ENABLE_MARLIN "Turn on the designs of Marlin (ICPP'23)" OFF)
+option (ENABLE_VAR_LEN_KV "Turn on the support for variable-length KVs" ON)
+option (TREE_ENABLE_MARLIN "Turn on the designs of Marlin (ICPP'23)" ON)
 
 if(ENABLE_VAR_LEN_KV)
     add_definitions(-DENABLE_VAR_LEN_KV)
@@ -109,8 +109,8 @@ set(COMMON_SRC ${PROJECT_SOURCE_DIR}/src)
 
 #Used by both server and clients
 file(GLOB_RECURSE COMMON_FILE ${COMMON_SRC}/*.cpp)
-add_library(sherman STATIC ${COMMON_FILE})
-link_libraries(sherman)
+add_library(Marlin STATIC ${COMMON_FILE})
+link_libraries(Marlin)
 
 # test
 
