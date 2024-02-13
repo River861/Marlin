@@ -19,7 +19,7 @@ option (MIDDLE_TEST_EPOCH "Use middle epoch num and short epoch duration" OFF)
 option (ENABLE_CACHE_EVICTION "Turn on cache-eviction" ON)
 option (READ_DELEGATION "Turn on read delegation technique" ON)
 option (WRITE_COMBINING "Turn on write combining technique" ON)
-option (ON_CHIP "Enable on-chip locks" ON)
+option (ON_CHIP "Enable on-chip locks" OFF)
 
 if(STATIC_MN_IP)
     add_definitions(-DSTATIC_ID_FROM_IP)
