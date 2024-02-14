@@ -385,7 +385,7 @@ int main(int argc, char *argv[]) {
   dsm = DSM::getInstance(config);
   bindCore(kThreadCount * 2 + 1);
   dsm->registerThread();
-#ifdef NEED_CACHE_EVICTION
+#ifdef ENABLE_CACHE_EVICTION
   dsm->loadKeySpace(ycsb_load_path, kIsStr);
 #endif
   tree = new Tree(dsm);

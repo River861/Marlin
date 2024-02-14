@@ -58,9 +58,9 @@ else()
 endif()
 
 if(ENABLE_CACHE_EVICTION)
-    add_definitions(-DNEED_CACHE_EVICTION)
+    add_definitions(-DENABLE_CACHE_EVICTION)
 else()
-    remove_definitions(-DNEED_CACHE_EVICTION)
+    remove_definitions(-DENABLE_CACHE_EVICTION)
 endif()
 
 if(READ_DELEGATION)
