@@ -156,8 +156,8 @@ constexpr Value kValueNull = 0;
 constexpr Value kValueMin = 1;
 constexpr Value kValueMax = std::numeric_limits<Value>::max();
 // fixed
-constexpr int spanSize = 64;
-
+constexpr uint32_t leafSpanSize = 64;
+constexpr int spanSize = leafSpanSize;
 
 // calculate kInternalPageSize and kLeafPageSize
 #ifdef TREE_ENABLE_MARLIN
