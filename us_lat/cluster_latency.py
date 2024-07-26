@@ -66,6 +66,8 @@ def load_remote_lat(sftp_client : paramiko.SFTPClient, file_path):
         if lat not in lat_cnt:
           lat_cnt[lat] = 0
         lat_cnt[lat] += int(cnt)
+  except Exception as e:
+    print(f"Error! {e}")
   finally:
     remote_file.close()
 
