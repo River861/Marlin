@@ -62,7 +62,6 @@ def load_remote_lat(sftp_client : paramiko.SFTPClient, file_path):
   try:
     for line in remote_file:
       lat, cnt = line.strip().split('\t', 1)
-      print(lat,cnt)
       if int(cnt):
         if lat not in lat_cnt:
           lat_cnt[lat] = 0
@@ -71,6 +70,7 @@ def load_remote_lat(sftp_client : paramiko.SFTPClient, file_path):
     print(f"Error! {e}")
   finally:
     remote_file.close()
+    print(len(lat_cnt))
 
 
 def cal_lat(e_id):
