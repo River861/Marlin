@@ -1318,8 +1318,8 @@ cas_retry:
 
   int m = cnt / 2;
   split_key = page->records[m].key;
-  // assert(split_key > page->hdr.lowest);
-  // assert(split_key < page->hdr.highest);
+  assert(split_key > page->hdr.lowest);
+  assert(split_key < page->hdr.highest);
 
   for (int i = m; i < cnt; ++i) { // move
     sibling->records[i - m].key = page->records[i].key;
