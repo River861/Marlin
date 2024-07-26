@@ -26,8 +26,8 @@ epoch_num = int(sys.argv[3])
 # epoch_start = 1
 # epoch_num = 10
 cluster_ips = [
-  '10.10.1.2',
   '10.10.1.1',
+  '10.10.1.2',
   '10.10.1.3',
   '10.10.1.4',
   '10.10.1.5',
@@ -61,13 +61,11 @@ def load_remote_lat(sftp_client : paramiko.SFTPClient, file_path):
   remote_file = sftp_client.open(file_path)
   try:
     for line in remote_file:
-      tmp = line.strip().split('\t', 1)
-      cnt = int(tmp[1]) if len(tmp) == 2 else 0
-      lat = tmp[0]
-      if cnt != 0:
+      lat, cnt = line.strip().split('\t', 1)
+      if int(cnt):
         if lat not in lat_cnt:
           lat_cnt[lat] = 0
-        lat_cnt[lat] += cnt
+        lat_cnt[lat] += int(cnt)
   finally:
     remote_file.close()
 
@@ -78,6 +76,9 @@ def cal_lat(e_id):
   th50 = all_lat / 2
   th90 = all_lat * 9 / 10
   th95 = all_lat * 95 / 100
+  th96 = all_lat * 96 / 100
+  th97 = all_lat * 97 / 100
+  th98 = all_lat * 98 / 100
   th99 = all_lat * 99 / 100
   th999 = all_lat * 999 / 1000
   cum = 0
@@ -92,6 +93,15 @@ def cal_lat(e_id):
     if cum >= th95:
       print(f'p95 {lat}', end='\t')
       th95 = all_lat + 1
+    if cum >= th96:
+      print(f'p96 {lat}', end='\t')
+      th96 = all_lat + 1
+    if cum >= th97:
+      print(f'p97 {lat}', end='\t')
+      th97 = all_lat + 1
+    if cum >= th98:
+      print(f'p98 {lat}', end='\t')
+      th98 = all_lat + 1
     if cum >= th99:
       print(f'p99 {lat}', end='\t')
       th99 = all_lat + 1
@@ -107,3 +117,4 @@ if __name__ == '__main__':
     for client in sftp_clients:
       load_remote_lat(client, str(lat_dir / f'epoch_{e_id}.lat'))
     cal_lat(e_id)
+
